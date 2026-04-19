@@ -65,7 +65,9 @@ class DiceFunctionMetadata:
     raw_function: object
     parameters: tuple[ParameterSpec, ...]
     signature: inspect.Signature
-    cache_enabled: bool
+    pure: bool
+    memoized: bool
+    cache_clear: object
     requests_sweep: bool
     bind_arguments: object
 
@@ -273,7 +275,7 @@ def _lifted_python_call(function, parameters, values):
     return diceengine.Sweep(combined_axes, cells)
 
 
-def dicefunction(function=None, *, name=None, cache=False):
+def dicefunction(function=None, *, name=None, pure=False):
     def decorate(raw_function):
         export_name = name if name is not None else raw_function.__name__
         if not export_name:
@@ -282,9 +284,12 @@ def dicefunction(function=None, *, name=None, cache=False):
         signature = inspect.signature(raw_function)
         requests_sweep = _annotation_requests_sweep(raw_function)
         bind_arguments = _build_argument_binder(parameters, export_name)
-        if cache and requests_sweep:
-            raise Exception("@dicefunction(cache=True) is not supported for sweep functions")
-        wrapped_function = functools.lru_cache(maxsize=None)(raw_function) if cache else raw_function
+        # Keep the current per-function cache store for simple scalar calls. If
+        # host-function cache policy grows more complex, a centralized cache
+        # manager would likely be easier to reason about than many local caches.
+        memoized = pure and not requests_sweep
+        wrapped_function = functools.lru_cache(maxsize=None)(raw_function) if memoized else raw_function
+        cache_clear = getattr(wrapped_function, "cache_clear", None) if memoized else None
 
         @functools.wraps(raw_function)
         def wrapped(*args, **kwargs):
@@ -303,7 +308,9 @@ def dicefunction(function=None, *, name=None, cache=False):
                 raw_function=raw_function,
                 parameters=parameters,
                 signature=signature,
-                cache_enabled=cache,
+                pure=pure,
+                memoized=memoized,
+                cache_clear=cache_clear,
                 requests_sweep=requests_sweep,
                 bind_arguments=bind_arguments,
             ),

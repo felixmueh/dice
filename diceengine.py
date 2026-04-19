@@ -16,14 +16,6 @@ from typing import Any, Generic, TypeVar
 from diagnostics import RuntimeError as DiceRuntimeError
 from hostfunctions import dicefunction
 
-try:
-    from math import comb
-except ImportError:
-    from math import factorial
-
-    def comb(n, k):
-        return factorial(n) / factorial(k) / factorial(n - k)
-
 
 TRUE = 1
 FALSE = 0
@@ -982,6 +974,10 @@ def _compare_distribution_to_scalar(distribution, scalar, operator, *, scalar_on
             comparison_true = left_value == right_value
         if comparison_true:
             true_probability += probability
+    if true_probability < 0 and abs(true_probability) <= PROBABILITY_TOLERANCE:
+        true_probability = 0.0
+    if true_probability > 1.0 and abs(true_probability - 1.0) <= PROBABILITY_TOLERANCE:
+        true_probability = 1.0
     return Distribution(((TRUE, true_probability), (FALSE, 1.0 - true_probability)))
 
 
@@ -1374,22 +1370,22 @@ def choose_single(left, right):
     return member(left, right)
 
 
-@dicefunction(cache=True)
+@dicefunction(pure=True)
 def res(condition: Any, distrib: Any):
     return reselse(condition, distrib, 0)
 
 
-@dicefunction(cache=True)
+@dicefunction(pure=True)
 def mean(value: Any):
     return _deterministic_distribution(_coerce_to_distribution_cell(value).average())
 
 
-@dicefunction(cache=True)
+@dicefunction(pure=True)
 def var(value: Any):
     return _deterministic_distribution(_coerce_to_distribution_cell(value).variance())
 
 
-@dicefunction(cache=True)
+@dicefunction(pure=True)
 def std(value: Any):
     return _deterministic_distribution(_coerce_to_distribution_cell(value).stddev())
 
@@ -1399,7 +1395,7 @@ def sample(value: Any):
     return _sample_from_distribution(_coerce_to_distribution_cell(value))
 
 
-@dicefunction(cache=True)
+@dicefunction(pure=True)
 def cum(value: Any):
     distrib = _coerce_to_distribution_cell(value)
     cumulative = 0.0
@@ -1412,7 +1408,7 @@ def cum(value: Any):
     return FiniteMeasure(entries)
 
 
-@dicefunction(cache=True)
+@dicefunction(pure=True)
 def surv(value: Any):
     distrib = _coerce_to_distribution_cell(value)
     remaining = distrib.total_weight
@@ -1425,7 +1421,7 @@ def surv(value: Any):
     return FiniteMeasure(entries)
 
 
-@dicefunction(cache=True)
+@dicefunction(pure=True)
 def reselse(condition: Any, distrib_if: Any, distrib_else: Any):
     condition_distribution = _coerce_to_distribution_cell(condition)
     true_mass, false_mass = _bool_mass(condition_distribution)
@@ -1439,17 +1435,17 @@ def reselse(condition: Any, distrib_if: Any, distrib_else: Any):
     return Distribution(entries)
 
 
-@dicefunction(cache=True)
+@dicefunction(pure=True)
 def reselsediv(condition: Any, distrib: Any):
     return reselse(condition, distrib, div(distrib, 2))
 
 
-@dicefunction(cache=True)
+@dicefunction(pure=True)
 def reselsefloordiv(condition: Any, distrib: Any):
     return reselse(condition, distrib, floordiv(distrib, 2))
 
 
-@dicefunction(cache=True)
+@dicefunction(pure=True)
 def roll(n: Any, s: Any):
     n_distribution = _coerce_to_distribution_cell(n)
     s_distribution = _coerce_to_distribution_cell(s)
@@ -1468,7 +1464,7 @@ def roll(n: Any, s: Any):
     return Distribution(entries)
 
 
-@dicefunction(cache=True)
+@dicefunction(pure=True)
 def rollsingle(dice: Any):
     if isinstance(dice, FiniteMeasure) and not isinstance(dice, Distribution):
         return _normalize_measure_cell(dice)
@@ -1482,7 +1478,7 @@ def rollsingle(dice: Any):
     return Distribution(entries)
 
 
-@dicefunction(cache=True)
+@dicefunction(pure=True)
 def rolladvantage(dice: Any):
     dice_distribution = _coerce_to_distribution_cell(dice)
     entries = []
@@ -1496,7 +1492,7 @@ def rolladvantage(dice: Any):
     return Distribution(entries)
 
 
-@dicefunction(cache=True)
+@dicefunction(pure=True)
 def rolldisadvantage(dice: Any):
     dice_distribution = _coerce_to_distribution_cell(dice)
     entries = []
@@ -1560,7 +1556,7 @@ def _rolllow_plain(n, s, nl):
     return Distribution(((outcome, weight / total) for outcome, weight in counts.items()))
 
 
-@dicefunction(cache=True)
+@dicefunction(pure=True)
 def rollhigh(n: Any, s: Any, nh: Any):
     n_distribution = _coerce_to_distribution_cell(n)
     s_distribution = _coerce_to_distribution_cell(s)
@@ -1576,7 +1572,7 @@ def rollhigh(n: Any, s: Any, nh: Any):
     return Distribution(entries)
 
 
-@dicefunction(cache=True)
+@dicefunction(pure=True)
 def rolllow(n: Any, s: Any, nl: Any):
     n_distribution = _coerce_to_distribution_cell(n)
     s_distribution = _coerce_to_distribution_cell(s)
@@ -1592,22 +1588,22 @@ def rolllow(n: Any, s: Any, nl: Any):
     return Distribution(entries)
 
 
-@dicefunction(cache=True)
+@dicefunction(pure=True)
 def add(left: Any, right: Any):
     return _numeric_binary_cell(left, right, lambda x, y: x + y, "add")
 
 
-@dicefunction(cache=True)
+@dicefunction(pure=True)
 def sub(left: Any, right: Any):
     return _numeric_binary_cell(left, right, lambda x, y: x - y, "sub")
 
 
-@dicefunction(cache=True)
+@dicefunction(pure=True)
 def mul(left: Any, right: Any):
     return _numeric_binary_cell(left, right, lambda x, y: x * y, "mul")
 
 
-@dicefunction(cache=True)
+@dicefunction(pure=True)
 def div(left: Any, right: Any):
     def op(x, y):
         if y == 0:
@@ -1617,7 +1613,7 @@ def div(left: Any, right: Any):
     return _numeric_binary_cell(left, right, op, "div")
 
 
-@dicefunction(cache=True)
+@dicefunction(pure=True)
 def floordiv(left: Any, right: Any):
     def op(x, y):
         if y == 0:
@@ -1627,42 +1623,42 @@ def floordiv(left: Any, right: Any):
     return _numeric_binary_cell(left, right, op, "floordiv")
 
 
-@dicefunction(cache=True)
+@dicefunction(pure=True)
 def neg(value: Any):
     return mul(-1, value)
 
 
-@dicefunction(cache=True)
+@dicefunction(pure=True)
 def greaterorequal(left: Any, right: Any):
     return _compare_cell(left, right, ">=")
 
 
-@dicefunction(cache=True)
+@dicefunction(pure=True)
 def greater(left: Any, right: Any):
     return _compare_cell(left, right, ">")
 
 
-@dicefunction(cache=True)
+@dicefunction(pure=True)
 def equal(left: Any, right: Any):
     return _compare_cell(left, right, "==")
 
 
-@dicefunction(cache=True)
+@dicefunction(pure=True)
 def lessorequal(left: Any, right: Any):
     return _compare_cell(left, right, "<=")
 
 
-@dicefunction(cache=True)
+@dicefunction(pure=True)
 def less(left: Any, right: Any):
     return _compare_cell(left, right, "<")
 
 
-@dicefunction(cache=True)
+@dicefunction(pure=True)
 def member(left: Any, right: Any):
     return _member_cell(left, right)
 
 
-@dicefunction(cache=True)
+@dicefunction(pure=True)
 def repeat_sum(count: Any, value: Any):
     count_outcome = _deterministic_numeric_value(count, "repeat_sum", allow_float=False)
     if count_outcome < 0:
@@ -1674,14 +1670,14 @@ def repeat_sum(count: Any, value: Any):
         return 0
     if count_outcome == 1:
         return value
-    # Recurse through the decorated builtin itself so the lru_cache attached by
-    # @dicefunction(cache=True) is shared across the whole execution.
+    # Recurse through the decorated builtin itself so the per-function cache
+    # attached by @dicefunction(pure=True) is shared across the whole execution.
     half = repeat_sum(count_outcome // 2, value)
     doubled = add(half, half)
     return doubled if count_outcome % 2 == 0 else add(doubled, value)
 
 
-@dicefunction
+@dicefunction(pure=True)
 def sumover(value: Sweep[Any], axes=_OMITTED):
     return sumover_with(add, value, axes)
 
@@ -1706,14 +1702,14 @@ def _sumover_reduce_entries(add_function, entries):
         runtime_error("sumover reduction produced an unexpected sweep")
     return reduced_sweep.only_value()
 
-@dicefunction
+@dicefunction(pure=True)
 def meanover(value: Sweep[Any], axes=_OMITTED):
     sweep = _coerce_value_to_sweep(value)
     targets = _resolve_reduction_targets(sweep, axes, "meanover")
     return _apply_reduction(sweep, targets, "meanover", lambda _targets, entries: _mean_reduce_cell(entries))
 
 
-@dicefunction
+@dicefunction(pure=True)
 def maxover(value: Sweep[Any], axes=_OMITTED):
     sweep = _coerce_value_to_sweep(value)
     targets = _resolve_reduction_targets(sweep, axes, "maxover")
@@ -1725,7 +1721,7 @@ def maxover(value: Sweep[Any], axes=_OMITTED):
     )
 
 
-@dicefunction
+@dicefunction(pure=True)
 def argmaxover(value: Sweep[Any], axes=_OMITTED):
     sweep = _coerce_value_to_sweep(value)
     targets = _resolve_reduction_targets(sweep, axes, "argmaxover")
@@ -1750,7 +1746,7 @@ def total_with(add_function, value):
         lambda _targets, entries: _sumover_reduce_entries(add_function, entries),
     )
 
-@dicefunction
+@dicefunction(pure=True)
 def total(value: Sweep[Any]):
     return total_with(add, value)
 

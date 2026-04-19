@@ -21,7 +21,7 @@ from diceengine import (
     lift_sweeps,
 )
 from diceparser import DiceParser
-from executor import ExactExecutor, Executor
+from executor import ExactExecutor
 from interpreter import Interpreter
 from lexer import Lexer
 
@@ -100,12 +100,56 @@ def _repeat_sum_with_linear(add_function, count, value):
 class DirectExecutor(ExactExecutor):
     """Sampling backend mirroring the exact executor one execution at a time."""
 
+    supports_pure_function_caching = False
+
     def __init__(self, seed=None, rng=None):
         self.rng = rng if rng is not None else random.Random(seed)
         super().__init__()
 
     def _register_builtin_functions(self):
-        Executor._register_builtin_functions(self)
+        for name in [
+            "add",
+            "sub",
+            "mul",
+            "div",
+            "floordiv",
+            "neg",
+            "roll",
+            "rollsingle",
+            "rolladvantage",
+            "rolldisadvantage",
+            "rollhigh",
+            "rolllow",
+            "greaterorequal",
+            "greater",
+            "equal",
+            "lessorequal",
+            "less",
+            "member",
+            "res",
+            "reselse",
+            "reselsediv",
+            "reselsefloordiv",
+            "mean",
+            "sample",
+            "var",
+            "std",
+            "cum",
+            "surv",
+            "repeat_sum",
+            "sumover",
+            "meanover",
+            "maxover",
+            "argmaxover",
+            "total",
+        ]:
+            self._register_host_function(
+                getattr(self, name),
+                name=name,
+                sweep_mode=True,
+                pure=name != "sample",
+            )
+        self._register_special_builtin_functions()
 
     def _lift_binary(self, left, right, operation, exact_operation=None):
         @lift_sweeps

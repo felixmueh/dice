@@ -28,9 +28,14 @@ class HostFunction:
     variadic: bool = False
     variadic_keyword_arguments: bool = False
     sweep_mode: bool = False
+    pure: bool = False
+    memoized: bool = False
+    cache_clear: object = None
 
 class Executor(ABC):
     """Abstract interpreter backend plus named host-callable registry."""
+
+    supports_pure_function_caching = False
 
     def __init__(self, render_config=None):
         self.functions = {}
@@ -60,6 +65,7 @@ class Executor(ABC):
         require_decorated=False,
         parameters=None,
         variadic_keyword_arguments=False,
+        pure=None,
     ):
         metadata = get_dicefunction_metadata(function)
         if require_decorated and metadata is None:
@@ -77,48 +83,55 @@ class Executor(ABC):
             variadic=variadic,
             variadic_keyword_arguments=variadic_keyword_arguments,
             sweep_mode=self._annotation_requests_sweep(function) if sweep_mode is None else sweep_mode,
+            pure=metadata.pure if metadata is not None else (False if pure is None else pure),
+            memoized=metadata.memoized if metadata is not None else False,
+            cache_clear=metadata.cache_clear if metadata is not None else None,
         )
         self.functions[callable_name] = entry
         return function
 
-    def _register_builtin_functions(self):
+    def invalidate_caches(self):
+        # Per-function cache clearing keeps the current implementation simple,
+        # but if cache policy grows more complex a centralized cache registry
+        # would likely be easier to reason about than scattered local stores.
+        for entry in self.functions.values():
+            if entry.cache_clear is not None:
+                entry.cache_clear()
+
+    def _register_special_builtin_functions(self):
+        # These are "special" builtins rather than ordinary engine primitives.
+        # They either mutate executor-owned session state (render config,
+        # pending report assembly, render() flushing) or need custom callable
+        # signatures such as variadics and keyword-only labels for chart
+        # constructors. That makes them a poor fit for the normal decorated
+        # diceengine-function registration path used by the exact backend.
+        purity = {
+            "type": True,
+            "shape": True,
+            "set_render_mode": False,
+            "set_render_backend": False,
+            "set_render_autoflush": False,
+            "set_render_omit_dominant_zero": False,
+            "set_probability_mode": False,
+            "r_title": False,
+            "r_note": False,
+            "r_hero": False,
+            "r_wide": True,
+            "r_narrow": True,
+            "r_row": False,
+            "r_auto": True,
+            "r_dist": True,
+            "r_cdf": True,
+            "r_surv": True,
+            "r_compare": True,
+            "r_diff": True,
+            "r_best": True,
+            "render": False,
+        }
+
         for name in [
-            "add",
-            "sub",
-            "mul",
-            "div",
-            "floordiv",
-            "neg",
-            "roll",
-            "rollsingle",
-            "rolladvantage",
-            "rolldisadvantage",
-            "rollhigh",
-            "rolllow",
-            "greaterorequal",
-            "greater",
-            "equal",
-            "lessorequal",
-            "less",
-            "member",
-            "res",
-            "reselse",
-            "reselsediv",
-            "reselsefloordiv",
-            "mean",
-            "sample",
-            "var",
-            "std",
-            "cum",
-            "surv",
             "type",
             "shape",
-            "repeat_sum",
-            "sumover",
-            "meanover",
-            "maxover",
-            "argmaxover",
-            "total",
             "set_render_mode",
             "set_render_backend",
             "set_render_autoflush",
@@ -130,12 +143,18 @@ class Executor(ABC):
             "r_wide",
             "r_narrow",
         ]:
-            self._register_host_function(getattr(self, name), name=name, sweep_mode=True)
+            self._register_host_function(
+                getattr(self, name),
+                name=name,
+                sweep_mode=True,
+                pure=purity[name],
+            )
         self._register_host_function(
             self.r_row,
             name="r_row",
             variadic=True,
             sweep_mode=True,
+            pure=purity["r_row"],
         )
         chart_kw_parameters = (
             ParameterSpec("x", default_value=None, keyword_only=True),
@@ -147,13 +166,13 @@ class Executor(ABC):
             ParameterSpec("y", default_value=None, keyword_only=True),
             ParameterSpec("title", default_value=None, keyword_only=True),
         )
-        self._register_host_function(self.r_auto, name="r_auto", sweep_mode=True, parameters=chart_kw_parameters, variadic=True, variadic_keyword_arguments=True)
-        self._register_host_function(self.r_dist, name="r_dist", sweep_mode=True, parameters=chart_kw_parameters, variadic=True, variadic_keyword_arguments=True)
-        self._register_host_function(self.r_cdf, name="r_cdf", sweep_mode=True, parameters=chart_kw_parameters, variadic=True, variadic_keyword_arguments=True)
-        self._register_host_function(self.r_surv, name="r_surv", sweep_mode=True, parameters=chart_kw_parameters, variadic=True, variadic_keyword_arguments=True)
-        self._register_host_function(self.r_compare, name="r_compare", sweep_mode=True, parameters=compare_kw_parameters, variadic=True, variadic_keyword_arguments=True)
-        self._register_host_function(self.r_diff, name="r_diff", sweep_mode=True, parameters=compare_kw_parameters, variadic=True, variadic_keyword_arguments=True)
-        self._register_host_function(self.r_best, name="r_best", sweep_mode=True, parameters=chart_kw_parameters, variadic=True, variadic_keyword_arguments=True)
+        self._register_host_function(self.r_auto, name="r_auto", sweep_mode=True, parameters=chart_kw_parameters, variadic=True, variadic_keyword_arguments=True, pure=purity["r_auto"])
+        self._register_host_function(self.r_dist, name="r_dist", sweep_mode=True, parameters=chart_kw_parameters, variadic=True, variadic_keyword_arguments=True, pure=purity["r_dist"])
+        self._register_host_function(self.r_cdf, name="r_cdf", sweep_mode=True, parameters=chart_kw_parameters, variadic=True, variadic_keyword_arguments=True, pure=purity["r_cdf"])
+        self._register_host_function(self.r_surv, name="r_surv", sweep_mode=True, parameters=chart_kw_parameters, variadic=True, variadic_keyword_arguments=True, pure=purity["r_surv"])
+        self._register_host_function(self.r_compare, name="r_compare", sweep_mode=True, parameters=compare_kw_parameters, variadic=True, variadic_keyword_arguments=True, pure=purity["r_compare"])
+        self._register_host_function(self.r_diff, name="r_diff", sweep_mode=True, parameters=compare_kw_parameters, variadic=True, variadic_keyword_arguments=True, pure=purity["r_diff"])
+        self._register_host_function(self.r_best, name="r_best", sweep_mode=True, parameters=chart_kw_parameters, variadic=True, variadic_keyword_arguments=True, pure=purity["r_best"])
         self._register_host_function(
             self.render,
             name="render",
@@ -163,7 +182,12 @@ class Executor(ABC):
                 ParameterSpec("format", default_value=None),
                 ParameterSpec("dpi", default_value=None),
             ),
+            pure=purity["render"],
         )
+
+    @abstractmethod
+    def _register_builtin_functions(self):
+        raise NotImplementedError
 
     def register_function(self, function, name=None):
         return self._register_host_function(function, name=name, require_decorated=True)
@@ -414,60 +438,15 @@ class Executor(ABC):
 class ExactExecutor(Executor):
     """Exact backend delegating to pure functions in diceengine."""
 
+    supports_pure_function_caching = True
+
     def _register_builtin_functions(self):
         for value in diceengine.__dict__.values():
             metadata = get_dicefunction_metadata(value)
             if metadata is None or getattr(value, "__module__", None) != diceengine.__name__:
                 continue
             self._register_host_function(value)
-        for name in [
-            "type",
-            "shape",
-            "set_render_mode",
-            "set_render_backend",
-            "set_render_autoflush",
-            "set_render_omit_dominant_zero",
-            "set_probability_mode",
-            "r_title",
-            "r_note",
-            "r_hero",
-            "r_wide",
-            "r_narrow",
-        ]:
-            self._register_host_function(getattr(self, name), name=name, sweep_mode=True)
-        self._register_host_function(
-            self.r_row,
-            name="r_row",
-            variadic=True,
-            sweep_mode=True,
-        )
-        chart_kw_parameters = (
-            ParameterSpec("x", default_value=None, keyword_only=True),
-            ParameterSpec("y", default_value=None, keyword_only=True),
-            ParameterSpec("title", default_value=None, keyword_only=True),
-        )
-        compare_kw_parameters = (
-            ParameterSpec("x", default_value=None, keyword_only=True),
-            ParameterSpec("y", default_value=None, keyword_only=True),
-            ParameterSpec("title", default_value=None, keyword_only=True),
-        )
-        self._register_host_function(self.r_auto, name="r_auto", sweep_mode=True, parameters=chart_kw_parameters, variadic=True, variadic_keyword_arguments=True)
-        self._register_host_function(self.r_dist, name="r_dist", sweep_mode=True, parameters=chart_kw_parameters, variadic=True, variadic_keyword_arguments=True)
-        self._register_host_function(self.r_cdf, name="r_cdf", sweep_mode=True, parameters=chart_kw_parameters, variadic=True, variadic_keyword_arguments=True)
-        self._register_host_function(self.r_surv, name="r_surv", sweep_mode=True, parameters=chart_kw_parameters, variadic=True, variadic_keyword_arguments=True)
-        self._register_host_function(self.r_compare, name="r_compare", sweep_mode=True, parameters=compare_kw_parameters, variadic=True, variadic_keyword_arguments=True)
-        self._register_host_function(self.r_diff, name="r_diff", sweep_mode=True, parameters=compare_kw_parameters, variadic=True, variadic_keyword_arguments=True)
-        self._register_host_function(self.r_best, name="r_best", sweep_mode=True, parameters=chart_kw_parameters, variadic=True, variadic_keyword_arguments=True)
-        self._register_host_function(
-            self.render,
-            name="render",
-            sweep_mode=True,
-            parameters=(
-                ParameterSpec("path", default_value=None),
-                ParameterSpec("format", default_value=None),
-                ParameterSpec("dpi", default_value=None),
-            ),
-        )
+        self._register_special_builtin_functions()
 
     def member(self, left, right):
         return diceengine.member(left, right)

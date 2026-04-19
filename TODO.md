@@ -1,3 +1,16 @@
+# Add a git pre commit hook for running tests. 
+(And benchmarks?)
+# Add a repeatable benchmark run with results checked into the repository so it is possible to compare performance over time.
+- Should mention the git commit it was run on.
+# Add some performance metric collection (tracing)
+- Cache hits / misses per function
+# Improve regression tests by acception some float variation (within tolerance).
+# Add tests with programs that should not invalidate cache and check that this is the case (by monkeypatching invalidate_caches() function?)
+- In addition to tests that validate that the caches are invalidated.
+- This should be in addition to tests that test that cache invalidation actually works (because the behavior would differ).
+# Remove variadic keyword args for render functions (tuples?) in
+    def _register_special_builtin_functions(self):
+# Use uv
 # Think about impurity:
 - Reassigning global values!
 - sampling.
@@ -5,9 +18,26 @@
 (or allow sampling only in glboal scope not in functions)
 # Caching for dice functions!
 # FIX HOW SWEEPS INTERACT. SWEEPS WITH THE SAME LABEL ARE THE SAME AXIS.
+- Keep DSL sweep memoization under the current binding-based semantics for now;
+  many practical values currently pass through as trivial sweeps. Revisit cache
+  identity once sweep semantics are patched so sweeps are keyed by label+domain.
+- Current DSL function memoization is coarse-grained because dice-language
+  functions see whole sweep arguments and lifting happens inside operators /
+  builtins. Pure functions that do not use any special whole-sweep semantics
+  could likely benefit from finer-grained call-boundary caching similar to
+  Python `@dicefunction` lifting. A future purity/taint analysis pass could
+  track this, but we should also measure how much it adds beyond the operator
+  and builtin caches we already have.
+- `pure=True` on Python host functions is an author contract, even when the
+  implementation reads Python globals/closures. We currently have no mechanism
+  to validate that automatically; decide whether we want diagnostics or to keep
+  this as a trusted declaration.
+- Add a mechanism to invalidate host-function memoization as well as the
+  interpreter's DSL-function memo table.
 # multiline if then
+# Python side functions access global variables
 # Fix printing of highly multidimensional datastructures (perhaps steal some numpy ideas).
-# Think about language types. Currently buildin functions behave very differently for some types
+# !Think about language types. Currently buildin functions behave very differently for some types
 - 1 + 1 works when 1 is a scalar but not when 1 is represented as a degenerate distribution / finite measure.
 - This is a big point. Making the language internally consistent could potentially remove a lot of code / complexity.
 - I think I changed it so that we are allowing unswept values in the engine in more placed. Likely everything should just be swept.
@@ -125,3 +155,13 @@ where functions are registered instead of being duplicated in the interpreter.
 That should also make it possible to support more nuanced policies later, such
 as explicitly allowing some dice-language functions to call impure host
 functions like `render(...)` when that is intentional.
+
+* Add operator purity metadata in the purity-checking module
+
+Keep an exhaustive table for every operator the interpreter dispatches. The
+table should say which builtin behavior it corresponds to and whether it is
+pure.
+
+This is also a reasonable place to note a future refactor: if we do more static
+analysis, it may be worth lowering operator AST nodes into builtin function
+calls where span-preserving rewriting is practical.

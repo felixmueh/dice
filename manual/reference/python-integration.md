@@ -20,8 +20,10 @@ Important rules:
 - `dice_interpreter()` returns a persistent session
 - `session("...")` evaluates dice code in that session
 - `session.assign(name, value)` injects supported runtime values
+- `session.invalidate_caches()` clears dice-function memoization and declared-pure host-function caches
 - Python functions must be decorated with `@dicefunction` before registration
 - `session.register_function(...)` exposes a decorated Python helper to dice code
+- `@dicefunction(pure=True)` marks a Python helper as author-declared pure and enables the current host-side memoization path for non-sweep calls
 - untyped parameters receive projected cell values
 - parameters typed as `Distribution` or `FiniteMeasure` are auto-lifted cellwise
 - parameters typed as `Sweep[...]` receive the whole sweep container

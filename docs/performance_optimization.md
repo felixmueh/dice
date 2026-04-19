@@ -28,7 +28,7 @@ can be handled centrally.
 
 Important practical result:
 
-- `@dicefunction(cache=True)` now caches pure exact non-sweep calls through
+- `@dicefunction(pure=True)` now caches declared-pure exact non-sweep calls through
   Python `lru_cache`
 
 This made persistent reuse practical for exact subproblems.

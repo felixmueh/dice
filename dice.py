@@ -483,17 +483,15 @@ class DiceSession(object):
         if value is None:
             self.interpreter.exception("Unsupported host value type {}".format(type(value)))
         self.interpreter._validate_runtime_value(value)
-        if name in self.interpreter.global_scope:
-            self.interpreter.exception(
-                "global reassignment is not supported for {}".format(name),
-                hint="Choose a new name instead of mutating an existing global binding.",
-            )
         self.interpreter.global_scope[name] = value
-        self.interpreter._invalidate_function_cache()
+        self.interpreter.invalidate_caches()
         return value
 
     def register_function(self, function, name=None):
         return self.interpreter.register_function(function, name=name)
+
+    def invalidate_caches(self):
+        self.interpreter.invalidate_caches()
 
 
 def dice_interpreter(roundlevel=0, current_dir=None, executor=None, render_config=None):

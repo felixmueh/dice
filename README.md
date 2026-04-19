@@ -387,6 +387,7 @@ direct = greaterorequal(rollsingle(20), 11)
 Pass `executor=...` to `dice_interpreter(...)` when you want a non-default backend. Decorate exported Python helpers with `@dicefunction`, then register them with `session.register_function(...)`.
 
 - `@dicefunction` gives Python helpers dice lifting semantics in both direct Python calls and dice calls.
+- `@dicefunction(pure=True)` marks a Python helper as author-declared pure and enables host-side memoization for the current non-sweep cache path.
 - Untyped parameters receive projected cell values, not whole sweeps.
 - Parameters typed as `Distribution` or `FiniteMeasure` are auto-lifted cellwise.
 - Parameters typed as `Sweep[...]` receive the full sweep container.
@@ -394,6 +395,7 @@ Pass `executor=...` to `dice_interpreter(...)` when you want a non-default backe
 - `from dice import D` allows dice-expression defaults for Python functions, for example `def fireball(dc, save_bonus=D("default_save_bonus")): ...`.
 - `D("...")` defaults are evaluated against dice globals only during dice-session calls, not function parameters or caller locals.
 - Registered functions may return scalars, `FiniteMeasure`, `Distribution`, `Sweep[FiniteMeasure]`, or `Sweep[Distribution]`.
+- Call `session.invalidate_caches()` if a declared-pure Python helper depends on mutable Python globals or closures that changed outside dice.
 
 User-facing examples now live under [examples/](/home/felix/_Documents/Projects/dice/examples), with Python-extension examples under [examples/02_python_extensions](/home/felix/_Documents/Projects/dice/examples/02_python_extensions).
 
