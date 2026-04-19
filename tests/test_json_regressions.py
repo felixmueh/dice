@@ -1,10 +1,12 @@
 import json
+import math
 import os
 import sys
 import tempfile
 import unittest
 import importlib.util
 from pathlib import Path
+from numbers import Real
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -22,6 +24,10 @@ from diceengine import SweepValues
 from tests.json_regression_cases import all_cases
 
 
+FLOAT_REL_TOLERANCE = 1e-9
+FLOAT_ABS_TOLERANCE = 1e-12
+
+
 def _normalize_snapshot_payload(payload):
     if payload.get("type") == "string":
         value = payload.get("value")
@@ -30,6 +36,16 @@ def _normalize_snapshot_payload(payload):
             normalized["value"] = "__RENDER_OUTPUT__"
             return normalized
     return payload
+
+
+def _is_real_number(value):
+    return isinstance(value, Real) and not isinstance(value, bool)
+
+
+def _float_like(left, right):
+    return _is_real_number(left) and _is_real_number(right) and (
+        isinstance(left, float) or isinstance(right, float)
+    )
 
 
 def evaluate_case(case):
@@ -56,6 +72,51 @@ def evaluate_case(case):
 
 
 class JsonRegressionTest(unittest.TestCase):
+    def assertSnapshotEqual(self, actual, expected, path="root"):
+        if _float_like(actual, expected):
+            self.assertTrue(
+                math.isclose(
+                    actual,
+                    expected,
+                    rel_tol=FLOAT_REL_TOLERANCE,
+                    abs_tol=FLOAT_ABS_TOLERANCE,
+                ),
+                f"{path}: {actual!r} != {expected!r} within tolerance",
+            )
+            return
+
+        if type(actual) is not type(expected):
+            self.fail(
+                f"{path}: type mismatch {type(actual).__name__} != {type(expected).__name__}"
+            )
+
+        if isinstance(actual, dict):
+            self.assertEqual(set(actual), set(expected), f"{path}: key mismatch")
+            for key in actual:
+                self.assertSnapshotEqual(actual[key], expected[key], f"{path}.{key}")
+            return
+
+        if isinstance(actual, list):
+            self.assertEqual(len(actual), len(expected), f"{path}: length mismatch")
+            for index, (actual_item, expected_item) in enumerate(zip(actual, expected)):
+                self.assertSnapshotEqual(actual_item, expected_item, f"{path}[{index}]")
+            return
+
+        self.assertEqual(actual, expected, f"{path}: value mismatch")
+
+    def test_snapshot_comparison_allows_small_float_drift(self):
+        self.assertSnapshotEqual(
+            {"probability": 0.30000000000000004, "entries": [1.0, 2.0 / 3.0]},
+            {"probability": 0.3, "entries": [1.0, 0.6666666666666666]},
+        )
+
+    def test_snapshot_comparison_still_rejects_meaningful_float_changes(self):
+        with self.assertRaises(AssertionError):
+            self.assertSnapshotEqual(
+                {"probability": 0.31},
+                {"probability": 0.3},
+            )
+
     def test_snapshots_match(self):
         cases = all_cases()
         self.assertTrue(cases, "expected at least one JSON regression case")
@@ -69,7 +130,7 @@ class JsonRegressionTest(unittest.TestCase):
                 result = evaluate_case(case)
                 actual = _normalize_snapshot_payload(_serialize_result(result, probability_mode="raw"))
                 expected = _normalize_snapshot_payload(json.loads(case.snapshot_path.read_text(encoding="utf-8")))
-                self.assertEqual(actual, expected)
+                self.assertSnapshotEqual(actual, expected)
 
 
 if __name__ == "__main__":
