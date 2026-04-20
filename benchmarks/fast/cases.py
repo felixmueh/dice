@@ -36,11 +36,9 @@ class PreparedEvalInstance:
 @dataclass(frozen=True)
 class PreparedEvalCase:
     benchmark_id: str
-    name: str
     expression: str
     setup_program: str | None = None
     description: str = ""
-    modes: tuple[str, ...] = ("cold", "warm")
 
     def build(self) -> PreparedEvalInstance:
         return PreparedEvalInstance(
@@ -51,109 +49,38 @@ class PreparedEvalCase:
 
 
 CASES = (
-    PreparedEvalCase(
-        benchmark_id="scalar_add",
-        name="Scalar Addition",
-        expression="1 + 1",
-        description="Minimal scalar arithmetic dispatch.",
-    ),
-    PreparedEvalCase(
-        benchmark_id="distribution_add",
-        name="Distribution Addition",
-        expression="d20 + d8",
-        description="Unswept exact distribution convolution.",
-    ),
-    PreparedEvalCase(
-        benchmark_id="binary_roll",
-        name="Binary Roll",
-        expression="3 d 6",
-        description="Exact NdS lowering through repeat_sum.",
-    ),
-    PreparedEvalCase(
-        benchmark_id="keep_high",
-        name="Keep High",
-        expression="4 d 6 h 3",
-        description="Roll-high operator over multiple dice.",
-    ),
-    PreparedEvalCase(
-        benchmark_id="threshold_compare",
-        name="Threshold Compare",
-        expression="d20 >= 11",
-        description="Boolean distribution comparison.",
-    ),
-    PreparedEvalCase(
-        benchmark_id="branch_reselse",
-        name="Branching Damage",
-        expression="d20 >= 11 -> 8 | 0",
-        description="Relative else branching over a Bernoulli guard.",
-    ),
-    PreparedEvalCase(
-        benchmark_id="mean_summary",
-        name="Mean Summary",
-        expression="mean(d20 >= 11 -> 8 | 0)",
-        description="Scalar summary over a distribution-valued branch.",
-    ),
-    PreparedEvalCase(
-        benchmark_id="cum_summary",
-        name="Cumulative Distribution",
-        expression="cum(d20)",
-        description="CDF helper over an unswept distribution.",
-    ),
-    PreparedEvalCase(
-        benchmark_id="surv_summary",
-        name="Survival Distribution",
-        expression="surv(d20)",
-        description="Survival helper over an unswept distribution.",
-    ),
-    PreparedEvalCase(
-        benchmark_id="repeat_sum",
-        name="Repeat Sum",
-        expression="repeat_sum(8, d6)",
-        description="Repeated addition through cached repeated squaring.",
-    ),
-    PreparedEvalCase(
-        benchmark_id="dsl_scalar_call",
-        name="Pure DSL Scalar Call",
-        setup_program="double(value): value + value",
-        expression="double(21)",
-        description="Pure DSL call on a scalar argument.",
-    ),
-    PreparedEvalCase(
-        benchmark_id="dsl_distribution_call",
-        name="Pure DSL Distribution Call",
-        setup_program="double(value): value + value",
-        expression="double(d20)",
-        description="Pure DSL call on a distribution argument.",
-    ),
-    PreparedEvalCase(
-        benchmark_id="attack_vs_ac_sweep",
-        name="Attack vs AC Sweep",
-        setup_program="""
-attack_damage(ac):
-    d20 + 7 >= ac -> 8 | 0
-""".strip(),
-        expression="attack_damage([AC:10..25])",
-        description="One-axis sweep over a cached pure DSL attack helper.",
-    ),
-    PreparedEvalCase(
-        benchmark_id="damage_vs_ac_sweep",
-        name="Damage vs AC Sweep",
-        setup_program="""
-damage(ac):
-    repeat_sum(4, d6 + (d20 + 7 >= ac -> 3 | 0))
-""".strip(),
-        expression="damage([AC:10..28])",
-        description="Medium cached sweep over a pure DSL helper with repeat_sum.",
-    ),
-    PreparedEvalCase(
-        benchmark_id="two_axis_damage_sweep",
-        name="Two-Axis Damage Sweep",
-        setup_program="""
-damage(ac, bless):
-    hit_bonus = bless == 1 -> d4 | 0
-    repeat_sum(4, d6 + (d20 + 7 + hit_bonus >= ac -> 3 | 0))
-""".strip(),
-        expression="damage([AC:10..26], [BLESS:0, 1])",
-        description="Two-axis pure sweep intended to show cache-sensitive reuse.",
-    ),
+    PreparedEvalCase("scalar_add", "1 + 1", description="Minimal scalar arithmetic dispatch."),
+    PreparedEvalCase("scalar_sub", "17 - 9", description="Scalar subtraction dispatch."),
+    PreparedEvalCase("scalar_mul", "6 * 7", description="Scalar multiplication dispatch."),
+    PreparedEvalCase("scalar_div", "21 / 3", description="Scalar division dispatch."),
+    PreparedEvalCase("scalar_floordiv", "21 // 4", description="Scalar floor division dispatch."),
+    PreparedEvalCase("scalar_neg", "-(d6)", description="Unary negation over a distribution."),
+    PreparedEvalCase("distribution_add", "d20 + d8", description="Unswept exact distribution convolution."),
+    PreparedEvalCase("distribution_compare", "d20 >= d12", description="Distribution-vs-distribution comparison."),
+    PreparedEvalCase("membership", "d20 in {1, 20}", description="Non-contiguous event membership query."),
+    PreparedEvalCase("binary_roll", "3 d 6", description="Exact NdS lowering through repeat_sum."),
+    PreparedEvalCase("keep_high", "4 d 6 h 3", description="Roll-high operator over multiple dice."),
+    PreparedEvalCase("keep_low", "4 d 6 l 3", description="Roll-low operator over multiple dice."),
+    PreparedEvalCase("branch_reselse", "d20 >= 11 -> 8 | 0", description="Relative else branching over a Bernoulli guard."),
+    PreparedEvalCase("mean_summary", "mean(d20 >= 11 -> 8 | 0)", description="Mean over a distribution-valued branch."),
+    PreparedEvalCase("var_summary", "var(d20 + d8)", description="Variance summary over a distribution."),
+    PreparedEvalCase("std_summary", "std(d20 + d8)", description="Standard deviation summary over a distribution."),
+    PreparedEvalCase("cum_summary", "cum(d20)", description="CDF helper over an unswept distribution."),
+    PreparedEvalCase("surv_summary", "surv(d20)", description="Survival helper over an unswept distribution."),
+    PreparedEvalCase("repeat_sum", "repeat_sum(8, d6)", description="Repeated addition through repeated squaring."),
+    PreparedEvalCase("sweep_arithmetic", "[AC:10..25] + 7", description="One-axis scalar sweep arithmetic."),
+    PreparedEvalCase("sweep_compare", "d20 >= [AC:10..25]", description="Distribution against a named scalar sweep."),
+    PreparedEvalCase("sweep_reorder_index", '([PLAN:1, 2] + [AC:10, 11])["AC", "PLAN"]', description="Axis reordering index operation."),
+    PreparedEvalCase("sweep_coordinate_index", "([PLAN:1, 2] + [AC:10, 11])[PLAN: 2]", description="Coordinate indexing on a named axis."),
+    PreparedEvalCase("sweep_filter_index", "([PLAN:1, 2] + [AC:10, 11, 12])[AC in {10, 12}]", description="Axis filter indexing."),
+    PreparedEvalCase("sweep_positional_index", '([PLAN:1, 2] + [AC:10, 11])[1, 0]', description="Positional coordinate indexing."),
+    PreparedEvalCase("sumover_named_axis", 'sumover([PLAN:1, 2] + [AC:10, 11], "PLAN")', description="Reducer over one named sweep axis."),
+    PreparedEvalCase("meanover_named_axis", 'meanover(d2 + [bonus:0, 1], "bonus")', description="Mean reducer over a named axis."),
+    PreparedEvalCase("maxover_named_axis", 'maxover([PLAN:1, 2] + [AC:10, 11], "PLAN")', description="Max reducer over a named axis."),
+    PreparedEvalCase("argmaxover_named_axis", 'argmaxover([PLAN:1, 2] + [AC:10, 11], "PLAN")', description="Argmax reducer over a named axis."),
+    PreparedEvalCase("sumover_multi_axis", 'sumover([PLAN:1, 2] + [LEVEL:10, 20] + [AC:100, 200], ("PLAN", "LEVEL"))', description="Reducer over multiple named axes."),
+    PreparedEvalCase("meanover_multi_axis", 'meanover([PLAN:1, 2] + [LEVEL:10, 20], ("PLAN", "LEVEL"))', description="Mean reducer over multiple named axes."),
+    PreparedEvalCase("attack_vs_ac_sweep", "repeat_sum(2, d20 >= [AC:10..25] -> 1 | 0)", description="Sweep-heavy attack tally."),
+    PreparedEvalCase("damage_vs_ac_sweep", "repeat_sum(4, d6 + (d20 + 7 >= [AC:10..28] -> 3 | 0))", description="One-axis damage sweep with repeat_sum."),
+    PreparedEvalCase("two_axis_damage_sweep", "repeat_sum(4, d6 + (d20 + 7 + ([BLESS:0, 1] == 1 -> d4 | 0) >= [AC:10..26] -> 3 | 0))", description="Two-axis damage sweep with inline bless logic."),
 )

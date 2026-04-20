@@ -70,7 +70,9 @@ The active runtime is now the parser/interpreter/engine stack plus the CLI in `d
 - Use `in` only for genuine non-contiguous or structured membership queries such as `d20 in {1, 20}`.
 - Benchmark work is split into `fast/`, `end_to_end/`, `slow/`, `exploratory/`, and `monte_carlo_comparison/` under `benchmarks/`.
 - Commit-time benchmark runs are driven by the pre-commit hook from the staged tree. A normal `git commit` runs `fast/` and `end_to_end/` and writes tracked results marked `during-commit`.
+- Use `BENCHMARK_REFRESH=1 git commit` when you intentionally want to refresh the tracked `fast/` and `end_to_end/` baselines during the commit. This still runs those suites and writes tracked results, but it skips failing the commit on benchmark regressions.
 - To also run the slower suites during commit, use environment flags such as `BENCHMARK_SLOW=1 git commit` and `BENCHMARK_SLOW=1 BENCHMARK_MONTE_CARLO=1 git commit`.
+- The refresh mode composes with the slower suites, for example `BENCHMARK_REFRESH=1 BENCHMARK_SLOW=1 BENCHMARK_MONTE_CARLO=1 git commit`.
 - When working on performance-sensitive changes, run the full benchmark suite before finishing the change. In practice this means the default commit-time suites plus `slow/` and the Monte Carlo comparisons.
 
 ## Tests

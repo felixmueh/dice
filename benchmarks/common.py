@@ -17,6 +17,7 @@ import sys
 ROOT = Path(__file__).resolve().parents[1]
 RESULTS_DIR = ROOT / "benchmarks" / "results"
 OUTPUT_MODES = ("none", "local", "tracked")
+REGRESSION_PERCENT_THRESHOLD = 0.10
 
 
 def cells_dict(result) -> dict[tuple[object, ...], object]:
@@ -78,8 +79,11 @@ def sample_coordinates(backend, coordinates, trials: int, seed: int, **backend_k
 
 
 def markdown_table(headers, rows) -> str:
+    def _cell_text(value) -> str:
+        return str(value).replace("|", "\\|")
+
     widths = [len(header) for header in headers]
-    string_rows = [[str(value) for value in row] for row in rows]
+    string_rows = [[_cell_text(value) for value in row] for row in rows]
     for row in string_rows:
         for index, value in enumerate(row):
             widths[index] = max(widths[index], len(value))
@@ -157,6 +161,136 @@ def summary_stat(summary: dict[str, object] | None, key: str) -> float | int | N
             return None
         return float(summary.get("stdev", 0.0)) / math.sqrt(count)
     return None
+
+
+def row_median_seconds(row: dict[str, object]) -> float:
+    summary = row.get("summary")
+    if summary is not None:
+        return float(summary["median"])
+    return float(row["elapsed_s"])
+
+
+def row_stderr_seconds(row: dict[str, object]) -> float:
+    summary = row.get("summary")
+    if summary is None:
+        return 0.0
+    return float(summary_stat(summary, "stderr_mean") or 0.0)
+
+
+def compare_against_baseline(
+    payload: dict[str, object],
+    baseline_payload: dict[str, object] | None,
+) -> dict[str, object] | None:
+    if baseline_payload is None:
+        return None
+
+    baseline_by_id = {row["id"]: row for row in baseline_payload.get("rows", [])}
+    rows = []
+    highlight_lines = []
+    regressions = 0
+    improvements = 0
+    matched = 0
+
+    for row in payload.get("rows", []):
+        baseline = baseline_by_id.get(row["id"])
+        if baseline is None:
+            continue
+        matched += 1
+        current_median = row_median_seconds(row)
+        baseline_median = row_median_seconds(baseline)
+        current_stderr = row_stderr_seconds(row)
+        baseline_stderr = row_stderr_seconds(baseline)
+        delta = current_median - baseline_median
+        delta_percent = None if baseline_median == 0 else delta / baseline_median * 100.0
+        regression_threshold_s = max(
+            baseline_median * REGRESSION_PERCENT_THRESHOLD,
+            current_stderr,
+            baseline_stderr,
+        )
+        status = "stable"
+        if delta > regression_threshold_s:
+            status = "regression"
+            regressions += 1
+        elif -delta > regression_threshold_s:
+            status = "improvement"
+            improvements += 1
+
+        row_result = {
+            "id": row["id"],
+            "name": row.get("name", row["id"]),
+            "construct": row.get("construct", row.get("name", row["id"])),
+            "mode": row.get("mode"),
+            "current_median_s": current_median,
+            "baseline_median_s": baseline_median,
+            "delta_s": delta,
+            "delta_percent": delta_percent,
+            "current_stderr_s": current_stderr,
+            "baseline_stderr_s": baseline_stderr,
+            "regression_threshold_s": regression_threshold_s,
+            "status": status,
+        }
+        rows.append(row_result)
+
+        if status in {"regression", "improvement"}:
+            mode_suffix = ""
+            if row_result["mode"] is not None:
+                mode_suffix = " [{}]".format(row_result["mode"])
+            change_label = "regression" if status == "regression" else "improvement"
+            delta_percent_text = "n/a" if delta_percent is None else "{:+.1f}%".format(delta_percent)
+            highlight_lines.append(
+                "{}{}: {} vs tracked baseline ({} / {:+.3f} ms; threshold {:.3f} ms)".format(
+                    row_result["name"],
+                    mode_suffix,
+                    change_label,
+                    delta_percent_text,
+                    delta * 1000,
+                    regression_threshold_s * 1000,
+                )
+            )
+
+    if matched == 0:
+        return None
+
+    return {
+        "baseline_benchmark_name": baseline_payload.get("benchmark_name"),
+        "matched_rows": matched,
+        "regressions": regressions,
+        "improvements": improvements,
+        "rows": rows,
+        "highlight_lines": highlight_lines,
+    }
+
+
+def payload_with_baseline_comparison(
+    payload: dict[str, object],
+    baseline_payload: dict[str, object] | None,
+) -> tuple[dict[str, object], dict[str, object] | None]:
+    payload = dict(payload)
+    comparison = compare_against_baseline(payload, baseline_payload)
+    if comparison is not None:
+        payload["baseline_comparison"] = comparison
+    return payload, comparison
+
+
+def highlight_lines(payload: dict[str, object]) -> list[str]:
+    comparison = payload.get("baseline_comparison")
+    if comparison is None:
+        return list(payload.get("summary_lines", []))
+    return list(payload.get("summary_lines", [])) + list(comparison.get("highlight_lines", []))
+
+
+def comparison_rows(payload: dict[str, object]) -> list[dict[str, object]]:
+    comparison = payload.get("baseline_comparison")
+    if comparison is None:
+        return []
+    return list(comparison.get("rows", []))
+
+
+def has_regressions(payload: dict[str, object]) -> bool:
+    comparison = payload.get("baseline_comparison")
+    if comparison is None:
+        return False
+    return bool(comparison.get("regressions"))
 
 
 def write_artifact_bundle(
@@ -268,6 +402,10 @@ def render_combined_report(output_mode: str) -> str:
         payload = json.loads(path.read_text(encoding="utf-8"))
         lines.append("## {}".format(payload.get("benchmark_name", path.stem)))
         lines.append("")
+        for line in highlight_lines(payload):
+            lines.append("- {}".format(line))
+        if highlight_lines(payload):
+            lines.append("")
         environment = payload.get("environment", {})
         if environment:
             context_suffix = ""
@@ -297,6 +435,64 @@ def render_combined_report(output_mode: str) -> str:
         else:
             lines.append("Unknown benchmark payload schema.")
         lines.append("")
+        if comparison_rows(payload):
+            lines.append("Comparison Against Previous Tracked Result")
+            lines.append("")
+            if category == "fast":
+                lines.append(
+                    markdown_table(
+                        ("Benchmark", "Mode", "Current (ms)", "Tracked (ms)", "Delta (ms)", "Delta (%)", "Threshold (ms)", "Status"),
+                        [
+                            (
+                                row["name"],
+                                row.get("mode") or "-",
+                                "{:.3f}".format(row["current_median_s"] * 1000),
+                                "{:.3f}".format(row["baseline_median_s"] * 1000),
+                                "{:+.3f}".format(row["delta_s"] * 1000),
+                                "n/a" if row["delta_percent"] is None else "{:+.1f}%".format(row["delta_percent"]),
+                                "{:.3f}".format(row["regression_threshold_s"] * 1000),
+                                row["status"],
+                            )
+                            for row in comparison_rows(payload)
+                        ],
+                    )
+                )
+            elif category == "end_to_end":
+                lines.append(
+                    markdown_table(
+                        ("Benchmark", "Current (ms)", "Tracked (ms)", "Delta (ms)", "Delta (%)", "Threshold (ms)", "Status"),
+                        [
+                            (
+                                row["name"],
+                                "{:.3f}".format(row["current_median_s"] * 1000),
+                                "{:.3f}".format(row["baseline_median_s"] * 1000),
+                                "{:+.3f}".format(row["delta_s"] * 1000),
+                                "n/a" if row["delta_percent"] is None else "{:+.1f}%".format(row["delta_percent"]),
+                                "{:.3f}".format(row["regression_threshold_s"] * 1000),
+                                row["status"],
+                            )
+                            for row in comparison_rows(payload)
+                        ],
+                    )
+                )
+            else:
+                lines.append(
+                    markdown_table(
+                        ("Name", "Current (s)", "Tracked (s)", "Delta (s)", "Delta (%)", "Status"),
+                        [
+                            (
+                                row["name"],
+                                "{:.3f}".format(row["current_median_s"]),
+                                "{:.3f}".format(row["baseline_median_s"]),
+                                "{:+.3f}".format(row["delta_s"]),
+                                "n/a" if row["delta_percent"] is None else "{:+.1f}%".format(row["delta_percent"]),
+                                row["status"],
+                            )
+                            for row in comparison_rows(payload)
+                        ],
+                    )
+                )
+            lines.append("")
     return "\n".join(lines).rstrip() + "\n"
 
 
@@ -340,32 +536,6 @@ def _row_columns(row: dict[str, object]) -> tuple[str, str, str, str, str, str, 
     )
 
 
-def _comparison_rows(current_payload: dict[str, object], baseline_payload: dict[str, object]) -> list[tuple[str, str, str, str, str]]:
-    baseline_by_id = {
-        row["id"]: row
-        for row in baseline_payload.get("rows", [])
-    }
-    rows = []
-    for row in current_payload.get("rows", []):
-        baseline = baseline_by_id.get(row["id"])
-        if baseline is None:
-            continue
-        current_elapsed = row["elapsed_s"]
-        baseline_elapsed = baseline["elapsed_s"]
-        delta = current_elapsed - baseline_elapsed
-        delta_percent = (delta / baseline_elapsed * 100.0) if baseline_elapsed else None
-        rows.append(
-            (
-                str(row["backend"]),
-                "{:.3f}".format(current_elapsed),
-                "{:.3f}".format(baseline_elapsed),
-                "{:+.3f}".format(delta),
-                "n/a" if delta_percent is None else "{:+.1f}%".format(delta_percent),
-            )
-        )
-    return rows
-
-
 def render_benchmark_markdown(
     payload: dict[str, object],
     baseline_payload: dict[str, object] | None = None,
@@ -375,9 +545,11 @@ def render_benchmark_markdown(
         "",
     ]
 
-    summary_lines = payload.get("summary_lines", [])
-    if summary_lines:
-        for line in summary_lines:
+    rendered_highlights = highlight_lines(payload)
+    if rendered_highlights:
+        lines.append("## Highlights")
+        lines.append("")
+        for line in rendered_highlights:
             lines.append("- {}".format(line))
         lines.append("")
 
@@ -424,16 +596,26 @@ def render_benchmark_markdown(
                 lines.append("- {}".format(line))
             lines.append("")
 
-    if baseline_payload is not None:
-        comparison_rows = _comparison_rows(payload, baseline_payload)
-        if comparison_rows:
+    if comparison_rows(payload):
+        rows = comparison_rows(payload)
+        if rows:
             lines.extend(
                 [
-                    "## Comparison Against Tracked Baseline",
+                    "## Comparison Against Previous Tracked Result",
                     "",
                     markdown_table(
-                        ("Backend", "Current (s)", "Tracked (s)", "Delta (s)", "Delta (%)"),
-                        comparison_rows,
+                        ("Backend", "Current (s)", "Tracked (s)", "Delta (s)", "Delta (%)", "Status"),
+                        [
+                            (
+                                row["name"],
+                                "{:.3f}".format(row["current_median_s"]),
+                                "{:.3f}".format(row["baseline_median_s"]),
+                                "{:+.3f}".format(row["delta_s"]),
+                                "n/a" if row["delta_percent"] is None else "{:+.1f}%".format(row["delta_percent"]),
+                                row["status"],
+                            )
+                            for row in rows
+                        ],
                     ),
                     "",
                 ]
@@ -452,8 +634,9 @@ def write_benchmark_artifacts(payload: dict[str, object], output_mode: str) -> t
     json_path.parent.mkdir(parents=True, exist_ok=True)
 
     baseline_payload = None
-    if output_mode == "local":
+    if output_mode in {"local", "tracked"}:
         baseline_payload = load_benchmark_payload(payload["benchmark_id"], "tracked")
+    payload, baseline_payload = payload_with_baseline_comparison(payload, baseline_payload)
 
     write_artifact_bundle(
         payload["benchmark_id"],

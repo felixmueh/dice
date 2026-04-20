@@ -39,6 +39,11 @@ def parse_args():
         help="Substring filter for benchmark ids. May be passed multiple times.",
     )
     parser.add_argument("--quick", action="store_true", help="Run fewer rounds for a smoke test.")
+    parser.add_argument(
+        "--fail-on-regression",
+        action="store_true",
+        help="Exit non-zero if a tracked-baseline regression exceeds the configured threshold.",
+    )
     return parser.parse_args()
 
 
@@ -55,57 +60,41 @@ def _time_once(case):
     return perf_counter() - start
 
 
-def _comparison_rows(payload, baseline_payload):
-    if baseline_payload is None:
-        return []
-    baseline_by_id = {row["id"]: row for row in baseline_payload.get("rows", [])}
-    rows = []
-    for row in payload["rows"]:
-        baseline = baseline_by_id.get(row["id"])
-        if baseline is None:
-            continue
-        current = row["summary"]["median"]
-        previous = baseline["summary"]["median"]
-        delta = current - previous
-        delta_percent = (delta / previous * 100.0) if previous else None
-        rows.append(
-            (
-                row["name"],
-                "{:.3f}".format(current * 1000),
-                "{:.3f}".format(previous * 1000),
-                "{:+.3f}".format(delta * 1000),
-                "n/a" if delta_percent is None else "{:+.1f}%".format(delta_percent),
-            )
-        )
-    return rows
-
-
 def render_markdown(payload, baseline_payload=None):
     lines = [
         "# {}".format(payload["benchmark_name"]),
         "",
-        "## Run Metadata",
-        "",
-        "- timestamp: {}".format(payload["environment"]["timestamp"]),
-        "- git commit: {}".format(payload["environment"]["git_commit"]),
-        "- git branch: {}".format(payload["environment"]["git_branch"]),
-        "- run context: {}".format(payload["environment"].get("run_context", "normal")),
-        "- worktree dirty: {}".format("yes" if payload["environment"]["git_dirty"] else "no"),
-        "- host: {}".format(payload["environment"]["hostname"]),
-        "- platform: {}".format(payload["environment"]["platform"]),
-        "- python: {}".format(payload["environment"]["python_version"]),
-        "",
-        "## Configuration",
-        "",
-        "- timed rounds: {}".format(payload["config"]["rounds"]),
-        "- warmup rounds: {}".format(payload["config"]["warmups"]),
-        "- parsing included: yes",
-        "- interpreter startup included: yes",
-        "- session reuse: no",
-        "",
-        "## Results",
-        "",
-        common.markdown_table(
+    ]
+    rendered_highlights = common.highlight_lines(payload)
+    if rendered_highlights:
+        lines.extend(["## Highlights", ""])
+        for line in rendered_highlights:
+            lines.append("- {}".format(line))
+        lines.append("")
+    lines.extend(
+        [
+            "## Run Metadata",
+            "",
+            "- timestamp: {}".format(payload["environment"]["timestamp"]),
+            "- git commit: {}".format(payload["environment"]["git_commit"]),
+            "- git branch: {}".format(payload["environment"]["git_branch"]),
+            "- run context: {}".format(payload["environment"].get("run_context", "normal")),
+            "- worktree dirty: {}".format("yes" if payload["environment"]["git_dirty"] else "no"),
+            "- host: {}".format(payload["environment"]["hostname"]),
+            "- platform: {}".format(payload["environment"]["platform"]),
+            "- python: {}".format(payload["environment"]["python_version"]),
+            "",
+            "## Configuration",
+            "",
+            "- timed rounds: {}".format(payload["config"]["rounds"]),
+            "- warmup rounds: {}".format(payload["config"]["warmups"]),
+            "- parsing included: yes",
+            "- interpreter startup included: yes",
+            "- session reuse: no",
+            "",
+            "## Results",
+            "",
+            common.markdown_table(
             (
                 "Benchmark",
                 "Median (ms)",
@@ -130,17 +119,29 @@ def render_markdown(payload, baseline_payload=None):
                 for row in payload["rows"]
             ],
         ),
-        "",
-    ]
-    comparison_rows = _comparison_rows(payload, baseline_payload)
+            "",
+        ]
+    )
+    comparison_rows = common.comparison_rows(payload)
     if comparison_rows:
         lines.extend(
             [
-                "## Comparison Against Tracked Baseline",
+                "## Comparison Against Previous Tracked Result",
                 "",
                 common.markdown_table(
-                    ("Benchmark", "Current (ms)", "Tracked (ms)", "Delta (ms)", "Delta (%)"),
-                    comparison_rows,
+                    ("Benchmark", "Current (ms)", "Tracked (ms)", "Delta (ms)", "Delta (%)", "Threshold (ms)", "Status"),
+                    [
+                        (
+                            row["name"],
+                            "{:.3f}".format(row["current_median_s"] * 1000),
+                            "{:.3f}".format(row["baseline_median_s"] * 1000),
+                            "{:+.3f}".format(row["delta_s"] * 1000),
+                            "n/a" if row["delta_percent"] is None else "{:+.1f}%".format(row["delta_percent"]),
+                            "{:.3f}".format(row["regression_threshold_s"] * 1000),
+                            row["status"],
+                        )
+                        for row in comparison_rows
+                    ],
                 ),
                 "",
             ]
@@ -189,11 +190,16 @@ def main():
         },
         "rows": rows,
     }
-    baseline_payload = common.load_benchmark_payload(payload["benchmark_id"], "tracked") if args.output == "local" else None
+    baseline_payload = common.load_benchmark_payload(payload["benchmark_id"], "tracked")
+    payload, _comparison = common.payload_with_baseline_comparison(payload, baseline_payload)
 
     print("End-to-end benchmark suite")
     print("parsing and interpreter startup are included")
     print()
+    for line in common.highlight_lines(payload):
+        print(f"NOTE: {line}")
+    if common.highlight_lines(payload):
+        print()
     print(
         common.markdown_table(
             (
@@ -219,6 +225,28 @@ def main():
             ],
         )
     )
+    comparison_rows = common.comparison_rows(payload)
+    if comparison_rows:
+        print()
+        print("Comparison against previous tracked result")
+        print()
+        print(
+            common.markdown_table(
+                ("Benchmark", "Current (ms)", "Tracked (ms)", "Delta (ms)", "Delta (%)", "Threshold (ms)", "Status"),
+                [
+                    (
+                        row["name"],
+                        "{:.3f}".format(row["current_median_s"] * 1000),
+                        "{:.3f}".format(row["baseline_median_s"] * 1000),
+                        "{:+.3f}".format(row["delta_s"] * 1000),
+                        "n/a" if row["delta_percent"] is None else "{:+.1f}%".format(row["delta_percent"]),
+                        "{:.3f}".format(row["regression_threshold_s"] * 1000),
+                        row["status"],
+                    )
+                    for row in comparison_rows
+                ],
+            )
+        )
 
     artifact_paths = common.write_artifact_bundle(
         payload["benchmark_id"],
@@ -229,6 +257,8 @@ def main():
     if artifact_paths is not None:
         print()
         print("Artifacts written to {} and {}".format(*artifact_paths))
+    if args.fail_on_regression and common.has_regressions(payload):
+        raise SystemExit("end-to-end benchmark regression exceeded tracked threshold")
 
 
 if __name__ == "__main__":

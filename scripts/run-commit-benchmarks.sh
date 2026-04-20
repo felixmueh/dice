@@ -35,11 +35,18 @@ run_if_present() {
     run_in_tree "$script_path" "$@"
 }
 
-fast_args=(benchmarks/fast/run.py --output tracked)
-end_to_end_args=(benchmarks/end_to_end/run.py --output tracked)
+fast_args=(benchmarks/fast/run.py --output tracked --fail-on-regression)
+end_to_end_args=(benchmarks/end_to_end/run.py --output tracked --fail-on-regression)
 slow_args=(benchmarks/slow/run.py --output tracked)
 hexed_args=(benchmarks/monte_carlo_comparison/hexed_scorching_ray/run.py --output tracked --skip-validation)
 chaos_args=(benchmarks/monte_carlo_comparison/chaos_bolt_chain/run.py --output tracked --skip-validation)
+
+if [[ "${BENCHMARK_REFRESH:-0}" == "1" ]]; then
+    # Refresh mode still runs the commit-time suites and writes tracked artifacts,
+    # but it skips the regression gate so intentional baseline updates can land.
+    fast_args=(benchmarks/fast/run.py --output tracked)
+    end_to_end_args=(benchmarks/end_to_end/run.py --output tracked)
+fi
 
 if [[ "${BENCHMARK_QUICK:-0}" == "1" ]]; then
     fast_args+=(--quick)
@@ -50,6 +57,9 @@ if [[ "${BENCHMARK_QUICK:-0}" == "1" ]]; then
 fi
 
 echo "Running tracked commit benchmarks from staged tree"
+if [[ "${BENCHMARK_REFRESH:-0}" == "1" ]]; then
+    echo "Benchmark refresh mode: regression failures are disabled for fast and end-to-end suites"
+fi
 ran_any=0
 run_if_present ran_any "${fast_args[@]}"
 run_if_present ran_any "${end_to_end_args[@]}"
