@@ -1,0 +1,833 @@
+{
+  "benchmark_id": "fast_prepared_eval",
+  "benchmark_name": "Fast Benchmarks: Prepared Evaluation",
+  "category": "fast",
+  "config": {
+    "filters": [],
+    "rounds": 9,
+    "warmups": 2
+  },
+  "environment": {
+    "git_branch": null,
+    "git_commit": null,
+    "git_dirty": false,
+    "hostname": "fedora.fritz.box",
+    "platform": "Linux-6.19.11-200.fc43.x86_64-x86_64-with-glibc2.42",
+    "python_version": "3.14.3",
+    "run_context": "during-commit",
+    "timestamp": "2026-04-20T21:51:09+02:00"
+  },
+  "rows": [
+    {
+      "benchmark_id": "scalar_add",
+      "description": "Minimal scalar arithmetic dispatch.",
+      "id": "scalar_add:cold",
+      "mode": "cold",
+      "name": "Scalar Addition",
+      "samples_s": [
+        1.9625993445515633e-05,
+        1.9556988263502717e-05,
+        3.746000584214926e-05,
+        1.7031998140737414e-05,
+        2.1410000044852495e-05,
+        1.7723010387271643e-05,
+        1.7103011487051845e-05,
+        1.727198832668364e-05,
+        3.689900040626526e-05
+      ],
+      "summary": {
+        "count": 9,
+        "max": 3.746000584214926e-05,
+        "mean": 2.2675777371558877e-05,
+        "median": 1.9556988263502717e-05,
+        "min": 1.7031998140737414e-05,
+        "stderr_mean": 2.784237640406455e-06,
+        "stdev": 8.352712921219364e-06
+      }
+    },
+    {
+      "benchmark_id": "scalar_add",
+      "description": "Minimal scalar arithmetic dispatch.",
+      "id": "scalar_add:warm",
+      "mode": "warm",
+      "name": "Scalar Addition",
+      "samples_s": [
+        7.363007171079516e-06,
+        7.104012183845043e-06,
+        9.09701338969171e-06,
+        6.6829961724579334e-06,
+        6.831978680565953e-06,
+        7.0229871198534966e-06,
+        6.2219914980232716e-06,
+        6.661983206868172e-06,
+        9.417999535799026e-06
+      ],
+      "summary": {
+        "count": 9,
+        "max": 9.417999535799026e-06,
+        "mean": 7.378218773131569e-06,
+        "median": 7.0229871198534966e-06,
+        "min": 6.2219914980232716e-06,
+        "stderr_mean": 3.7171035372724994e-07,
+        "stdev": 1.1151310611817498e-06
+      }
+    },
+    {
+      "benchmark_id": "distribution_add",
+      "description": "Unswept exact distribution convolution.",
+      "id": "distribution_add:cold",
+      "mode": "cold",
+      "name": "Distribution Addition",
+      "samples_s": [
+        7.330699008889496e-05,
+        7.218599785119295e-05,
+        0.00010140999802388251,
+        6.523198680952191e-05,
+        6.692600436508656e-05,
+        6.698601646348834e-05,
+        6.724600098095834e-05,
+        6.693601608276367e-05,
+        8.012098260223866e-05
+      ],
+      "summary": {
+        "count": 9,
+        "max": 0.00010140999802388251,
+        "mean": 7.337222147422533e-05,
+        "median": 6.724600098095834e-05,
+        "min": 6.523198680952191e-05,
+        "stderr_mean": 3.838095121164928e-06,
+        "stdev": 1.1514285363494782e-05
+      }
+    },
+    {
+      "benchmark_id": "distribution_add",
+      "description": "Unswept exact distribution convolution.",
+      "id": "distribution_add:warm",
+      "mode": "warm",
+      "name": "Distribution Addition",
+      "samples_s": [
+        1.3885990483686328e-05,
+        1.3515993487089872e-05,
+        1.971700112335384e-05,
+        1.223300932906568e-05,
+        1.2384000001475215e-05,
+        1.2322998372837901e-05,
+        1.2603006325662136e-05,
+        1.2353993952274323e-05,
+        1.824402716010809e-05
+      ],
+      "summary": {
+        "count": 9,
+        "max": 1.971700112335384e-05,
+        "mean": 1.414000224839482e-05,
+        "median": 1.2603006325662136e-05,
+        "min": 1.223300932906568e-05,
+        "stderr_mean": 9.426152810996715e-07,
+        "stdev": 2.8278458432990143e-06
+      }
+    },
+    {
+      "benchmark_id": "binary_roll",
+      "description": "Exact NdS lowering through repeat_sum.",
+      "id": "binary_roll:cold",
+      "mode": "cold",
+      "name": "Binary Roll",
+      "samples_s": [
+        7.082297815941274e-05,
+        7.201600237749517e-05,
+        0.00016258499817922711,
+        6.513198604807258e-05,
+        6.493099499493837e-05,
+        6.713598850183189e-05,
+        6.476198905147612e-05,
+        6.591400597244501e-05,
+        7.859800825826824e-05
+      ],
+      "summary": {
+        "count": 9,
+        "max": 0.00016258499817922711,
+        "mean": 7.909966128257413e-05,
+        "median": 6.713598850183189e-05,
+        "min": 6.476198905147612e-05,
+        "stderr_mean": 1.0545629500667218e-05,
+        "stdev": 3.1636888502001655e-05
+      }
+    },
+    {
+      "benchmark_id": "binary_roll",
+      "description": "Exact NdS lowering through repeat_sum.",
+      "id": "binary_roll:warm",
+      "mode": "warm",
+      "name": "Binary Roll",
+      "samples_s": [
+        6.521993782371283e-06,
+        6.6020002122968435e-06,
+        2.6819994673132896e-05,
+        6.451999070122838e-06,
+        5.23001654073596e-06,
+        6.311980541795492e-06,
+        5.891022738069296e-06,
+        6.012007361277938e-06,
+        1.1120981071144342e-05
+      ],
+      "summary": {
+        "count": 9,
+        "max": 2.6819994673132896e-05,
+        "mean": 8.995777332327432e-06,
+        "median": 6.451999070122838e-06,
+        "min": 5.23001654073596e-06,
+        "stderr_mean": 2.2987493593331615e-06,
+        "stdev": 6.8962480779994844e-06
+      }
+    },
+    {
+      "benchmark_id": "keep_high",
+      "description": "Roll-high operator over multiple dice.",
+      "id": "keep_high:cold",
+      "mode": "cold",
+      "name": "Keep High",
+      "samples_s": [
+        0.0007026889943517745,
+        0.0005458250234369189,
+        0.0007899129996076226,
+        0.0004695609968621284,
+        0.00048199400771409273,
+        0.00048687399248592556,
+        0.00047782700858078897,
+        0.0004903399967588484,
+        0.0005924220022279769
+      ],
+      "summary": {
+        "count": 9,
+        "max": 0.0007899129996076226,
+        "mean": 0.000559716113558453,
+        "median": 0.0004903399967588484,
+        "min": 0.0004695609968621284,
+        "stderr_mean": 3.831303901732365e-05,
+        "stdev": 0.00011493911705197095
+      }
+    },
+    {
+      "benchmark_id": "keep_high",
+      "description": "Roll-high operator over multiple dice.",
+      "id": "keep_high:warm",
+      "mode": "warm",
+      "name": "Keep High",
+      "samples_s": [
+        2.9185001039877534e-05,
+        9.598006727173924e-06,
+        1.8535007257014513e-05,
+        7.843977073207498e-06,
+        8.37599509395659e-06,
+        9.11697861738503e-06,
+        8.886010618880391e-06,
+        9.378010872751474e-06,
+        1.8324004486203194e-05
+      ],
+      "summary": {
+        "count": 9,
+        "max": 2.9185001039877534e-05,
+        "mean": 1.3249221309605571e-05,
+        "median": 9.378010872751474e-06,
+        "min": 7.843977073207498e-06,
+        "stderr_mean": 2.4296710664417227e-06,
+        "stdev": 7.289013199325168e-06
+      }
+    },
+    {
+      "benchmark_id": "threshold_compare",
+      "description": "Boolean distribution comparison.",
+      "id": "threshold_compare:cold",
+      "mode": "cold",
+      "name": "Threshold Compare",
+      "samples_s": [
+        6.236700573936105e-05,
+        3.5626988392323256e-05,
+        6.373898941092193e-05,
+        3.1598989153280854e-05,
+        3.153897705487907e-05,
+        3.142899367958307e-05,
+        3.1638977816328406e-05,
+        3.1369010685011744e-05,
+        3.7299992982298136e-05
+      ],
+      "summary": {
+        "count": 9,
+        "max": 6.373898941092193e-05,
+        "mean": 3.962310276822084e-05,
+        "median": 3.1638977816328406e-05,
+        "min": 3.1369010685011744e-05,
+        "stderr_mean": 4.486068061670295e-06,
+        "stdev": 1.3458204185010885e-05
+      }
+    },
+    {
+      "benchmark_id": "threshold_compare",
+      "description": "Boolean distribution comparison.",
+      "id": "threshold_compare:warm",
+      "mode": "warm",
+      "name": "Threshold Compare",
+      "samples_s": [
+        1.614101347513497e-05,
+        9.508017683401704e-06,
+        5.761801730841398e-05,
+        8.296017767861485e-06,
+        8.876988431438804e-06,
+        9.247014531865716e-06,
+        9.548006346449256e-06,
+        8.816015906631947e-06,
+        1.0310002835467458e-05
+      ],
+      "summary": {
+        "count": 9,
+        "max": 5.761801730841398e-05,
+        "mean": 1.537345492074059e-05,
+        "median": 9.508017683401704e-06,
+        "min": 8.296017767861485e-06,
+        "stderr_mean": 5.338535771631153e-06,
+        "stdev": 1.601560731489346e-05
+      }
+    },
+    {
+      "benchmark_id": "branch_reselse",
+      "description": "Relative else branching over a Bernoulli guard.",
+      "id": "branch_reselse:cold",
+      "mode": "cold",
+      "name": "Branching Damage",
+      "samples_s": [
+        6.817802204750478e-05,
+        4.5545981265604496e-05,
+        7.362800533883274e-05,
+        4.273999365977943e-05,
+        4.4492975575849414e-05,
+        4.3020001612603664e-05,
+        4.384201020002365e-05,
+        4.200899275019765e-05,
+        4.7178007662296295e-05
+      ],
+      "summary": {
+        "count": 9,
+        "max": 7.362800533883274e-05,
+        "mean": 5.007044334585468e-05,
+        "median": 4.4492975575849414e-05,
+        "min": 4.200899275019765e-05,
+        "stderr_mean": 3.9965485246411235e-06,
+        "stdev": 1.198964557392337e-05
+      }
+    },
+    {
+      "benchmark_id": "branch_reselse",
+      "description": "Relative else branching over a Bernoulli guard.",
+      "id": "branch_reselse:warm",
+      "mode": "warm",
+      "name": "Branching Damage",
+      "samples_s": [
+        2.4665991077199578e-05,
+        1.59699993673712e-05,
+        2.0969018805772066e-05,
+        1.4266988728195429e-05,
+        1.5749013982713223e-05,
+        1.66520185302943e-05,
+        1.542898826301098e-05,
+        1.4377001207321882e-05,
+        1.6901991330087185e-05
+      ],
+      "summary": {
+        "count": 9,
+        "max": 2.4665991077199578e-05,
+        "mean": 1.722011236577398e-05,
+        "median": 1.59699993673712e-05,
+        "min": 1.4266988728195429e-05,
+        "stderr_mean": 1.1405322811413455e-06,
+        "stdev": 3.421596843424036e-06
+      }
+    },
+    {
+      "benchmark_id": "mean_summary",
+      "description": "Scalar summary over a distribution-valued branch.",
+      "id": "mean_summary:cold",
+      "mode": "cold",
+      "name": "Mean Summary",
+      "samples_s": [
+        9.079999290406704e-05,
+        5.6105025578290224e-05,
+        7.058199844323099e-05,
+        4.9232010496780276e-05,
+        4.9062015023082495e-05,
+        5.24079950992018e-05,
+        4.862100468017161e-05,
+        5.060498369857669e-05,
+        6.751701585017145e-05
+      ],
+      "summary": {
+        "count": 9,
+        "max": 9.079999290406704e-05,
+        "mean": 5.943689353039695e-05,
+        "median": 5.24079950992018e-05,
+        "min": 4.862100468017161e-05,
+        "stderr_mean": 4.773212760957992e-06,
+        "stdev": 1.4319638282873974e-05
+      }
+    },
+    {
+      "benchmark_id": "mean_summary",
+      "description": "Scalar summary over a distribution-valued branch.",
+      "id": "mean_summary:warm",
+      "mode": "warm",
+      "name": "Mean Summary",
+      "samples_s": [
+        3.593799192458391e-05,
+        2.372398739680648e-05,
+        2.5627989089116454e-05,
+        1.9636994693428278e-05,
+        2.1149986423552036e-05,
+        2.258201129734516e-05,
+        2.009700983762741e-05,
+        2.1369982277974486e-05,
+        2.584801404736936e-05
+      ],
+      "summary": {
+        "count": 9,
+        "max": 3.593799192458391e-05,
+        "mean": 2.3997107443089288e-05,
+        "median": 2.258201129734516e-05,
+        "min": 1.9636994693428278e-05,
+        "stderr_mean": 1.6665694693235223e-06,
+        "stdev": 4.999708407970567e-06
+      }
+    },
+    {
+      "benchmark_id": "cum_summary",
+      "description": "CDF helper over an unswept distribution.",
+      "id": "cum_summary:cold",
+      "mode": "cold",
+      "name": "Cumulative Distribution",
+      "samples_s": [
+        6.448099156841636e-05,
+        4.443302168510854e-05,
+        4.72690153401345e-05,
+        3.958499291911721e-05,
+        4.048601840622723e-05,
+        4.708798951469362e-05,
+        3.9695005398243666e-05,
+        4.1027000406757e-05,
+        4.645701847039163e-05
+      ],
+      "summary": {
+        "count": 9,
+        "max": 6.448099156841636e-05,
+        "mean": 4.5613450412121085e-05,
+        "median": 4.443302168510854e-05,
+        "min": 3.958499291911721e-05,
+        "stderr_mean": 2.586558907986536e-06,
+        "stdev": 7.759676723959608e-06
+      }
+    },
+    {
+      "benchmark_id": "cum_summary",
+      "description": "CDF helper over an unswept distribution.",
+      "id": "cum_summary:warm",
+      "mode": "warm",
+      "name": "Cumulative Distribution",
+      "samples_s": [
+        1.571999746374786e-05,
+        1.047999830916524e-05,
+        1.1371012078598142e-05,
+        8.966977475211024e-06,
+        9.076989954337478e-06,
+        1.1081021511927247e-05,
+        9.217008482664824e-06,
+        9.728013537824154e-06,
+        1.1772004654631019e-05
+      ],
+      "summary": {
+        "count": 9,
+        "max": 1.571999746374786e-05,
+        "mean": 1.082366927423411e-05,
+        "median": 1.047999830916524e-05,
+        "min": 8.966977475211024e-06,
+        "stderr_mean": 7.03535785042179e-07,
+        "stdev": 2.110607355126537e-06
+      }
+    },
+    {
+      "benchmark_id": "surv_summary",
+      "description": "Survival helper over an unswept distribution.",
+      "id": "surv_summary:cold",
+      "mode": "cold",
+      "name": "Survival Distribution",
+      "samples_s": [
+        5.726699600927532e-05,
+        4.136798088438809e-05,
+        4.233900108374655e-05,
+        4.12980152759701e-05,
+        3.741998807527125e-05,
+        3.985498915426433e-05,
+        3.70900088455528e-05,
+        3.769100294448435e-05,
+        4.114699549973011e-05
+      ],
+      "summary": {
+        "count": 9,
+        "max": 5.726699600927532e-05,
+        "mean": 4.171944197474254e-05,
+        "median": 4.114699549973011e-05,
+        "min": 3.70900088455528e-05,
+        "stderr_mean": 2.049256540475604e-06,
+        "stdev": 6.147769621426811e-06
+      }
+    },
+    {
+      "benchmark_id": "surv_summary",
+      "description": "Survival helper over an unswept distribution.",
+      "id": "surv_summary:warm",
+      "mode": "warm",
+      "name": "Survival Distribution",
+      "samples_s": [
+        1.5749013982713223e-05,
+        9.929004590958357e-06,
+        1.039900234900415e-05,
+        8.365983376279473e-06,
+        8.847011486068368e-06,
+        1.0860007023438811e-05,
+        8.926988812163472e-06,
+        8.94599361345172e-06,
+        1.0741001460701227e-05
+      ],
+      "summary": {
+        "count": 9,
+        "max": 1.5749013982713223e-05,
+        "mean": 1.0307111854975423e-05,
+        "median": 9.929004590958357e-06,
+        "min": 8.365983376279473e-06,
+        "stderr_mean": 7.44581503727799e-07,
+        "stdev": 2.233744511183397e-06
+      }
+    },
+    {
+      "benchmark_id": "repeat_sum",
+      "description": "Repeated addition through cached repeated squaring.",
+      "id": "repeat_sum:cold",
+      "mode": "cold",
+      "name": "Repeat Sum",
+      "samples_s": [
+        0.00019530599820427597,
+        0.00013072500587441027,
+        0.0001366170181427151,
+        0.0001174100034404546,
+        0.00011995498789474368,
+        0.00011946400627493858,
+        0.00011659902520477772,
+        0.00011864301632158458,
+        0.00013086499529890716
+      ],
+      "summary": {
+        "count": 9,
+        "max": 0.00019530599820427597,
+        "mean": 0.0001317315618507564,
+        "median": 0.00011995498789474368,
+        "min": 0.00011659902520477772,
+        "stderr_mean": 8.301549447098419e-06,
+        "stdev": 2.4904648341295257e-05
+      }
+    },
+    {
+      "benchmark_id": "repeat_sum",
+      "description": "Repeated addition through cached repeated squaring.",
+      "id": "repeat_sum:warm",
+      "mode": "warm",
+      "name": "Repeat Sum",
+      "samples_s": [
+        2.0969018805772066e-05,
+        1.2472999515011907e-05,
+        1.3295008102431893e-05,
+        1.0579999070614576e-05,
+        1.0931020369753242e-05,
+        1.1600990546867251e-05,
+        1.0209012543782592e-05,
+        1.0418996680527925e-05,
+        1.3544980902224779e-05
+      ],
+      "summary": {
+        "count": 9,
+        "max": 2.0969018805772066e-05,
+        "mean": 1.2669114059665137e-05,
+        "median": 1.1600990546867251e-05,
+        "min": 1.0209012543782592e-05,
+        "stderr_mean": 1.1163379642276114e-06,
+        "stdev": 3.3490138926828344e-06
+      }
+    },
+    {
+      "benchmark_id": "dsl_scalar_call",
+      "description": "Pure DSL call on a scalar argument.",
+      "id": "dsl_scalar_call:cold",
+      "mode": "cold",
+      "name": "Pure DSL Scalar Call",
+      "samples_s": [
+        4.238999099470675e-05,
+        2.447600127197802e-05,
+        2.8323003789409995e-05,
+        2.139000571332872e-05,
+        2.24319810513407e-05,
+        2.402497921139002e-05,
+        2.1701009245589375e-05,
+        2.2252002963796258e-05,
+        2.6639987481758e-05
+      ],
+      "summary": {
+        "count": 9,
+        "max": 4.238999099470675e-05,
+        "mean": 2.595877352481087e-05,
+        "median": 2.402497921139002e-05,
+        "min": 2.139000571332872e-05,
+        "stderr_mean": 2.1958209293076845e-06,
+        "stdev": 6.587462787923054e-06
+      }
+    },
+    {
+      "benchmark_id": "dsl_scalar_call",
+      "description": "Pure DSL call on a scalar argument.",
+      "id": "dsl_scalar_call:warm",
+      "mode": "warm",
+      "name": "Pure DSL Scalar Call",
+      "samples_s": [
+        1.0549993021413684e-05,
+        5.179987056180835e-06,
+        6.581976776942611e-06,
+        4.748988430947065e-06,
+        5.509995389729738e-06,
+        6.6820066422224045e-06,
+        4.878995241597295e-06,
+        5.319976480677724e-06,
+        6.170972483232617e-06
+      ],
+      "summary": {
+        "count": 9,
+        "max": 1.0549993021413684e-05,
+        "mean": 6.180321280327108e-06,
+        "median": 5.509995389729738e-06,
+        "min": 4.748988430947065e-06,
+        "stderr_mean": 5.944125903388081e-07,
+        "stdev": 1.7832377710164244e-06
+      }
+    },
+    {
+      "benchmark_id": "dsl_distribution_call",
+      "description": "Pure DSL call on a distribution argument.",
+      "id": "dsl_distribution_call:cold",
+      "mode": "cold",
+      "name": "Pure DSL Distribution Call",
+      "samples_s": [
+        0.00010639001266099513,
+        8.163298480212688e-05,
+        8.358698687516153e-05,
+        7.336799171753228e-05,
+        7.659400580450892e-05,
+        7.439899491146207e-05,
+        7.195500074885786e-05,
+        7.444998482242227e-05,
+        0.00018537798314355314
+      ],
+      "summary": {
+        "count": 9,
+        "max": 0.00018537798314355314,
+        "mean": 9.197266060962445e-05,
+        "median": 7.659400580450892e-05,
+        "min": 7.195500074885786e-05,
+        "stderr_mean": 1.219566411164926e-05,
+        "stdev": 3.658699233494778e-05
+      }
+    },
+    {
+      "benchmark_id": "dsl_distribution_call",
+      "description": "Pure DSL call on a distribution argument.",
+      "id": "dsl_distribution_call:warm",
+      "mode": "warm",
+      "name": "Pure DSL Distribution Call",
+      "samples_s": [
+        1.8894992535933852e-05,
+        1.0599993402138352e-05,
+        1.2283009709790349e-05,
+        8.715986041352153e-06,
+        9.648007107898593e-06,
+        1.1801981600001454e-05,
+        9.568000677973032e-06,
+        1.0068994015455246e-05,
+        2.4495006073266268e-05
+      ],
+      "summary": {
+        "count": 9,
+        "max": 2.4495006073266268e-05,
+        "mean": 1.2897330129312144e-05,
+        "median": 1.0599993402138352e-05,
+        "min": 8.715986041352153e-06,
+        "stderr_mean": 1.765638985329897e-06,
+        "stdev": 5.296916955989691e-06
+      }
+    },
+    {
+      "benchmark_id": "attack_vs_ac_sweep",
+      "description": "One-axis sweep over a cached pure DSL attack helper.",
+      "id": "attack_vs_ac_sweep:cold",
+      "mode": "cold",
+      "name": "Attack vs AC Sweep",
+      "samples_s": [
+        0.0004884270019829273,
+        0.0003277349751442671,
+        0.0003449469804763794,
+        0.0002909769827965647,
+        0.00029806900420226157,
+        0.0002940119884442538,
+        0.00032431900035589933,
+        0.00030079498537816107,
+        0.0004938769852742553
+      ],
+      "summary": {
+        "count": 9,
+        "max": 0.0004938769852742553,
+        "mean": 0.00035146198933944106,
+        "median": 0.00032431900035589933,
+        "min": 0.0002909769827965647,
+        "stderr_mean": 2.7069996439587507e-05,
+        "stdev": 8.120998931876252e-05
+      }
+    },
+    {
+      "benchmark_id": "attack_vs_ac_sweep",
+      "description": "One-axis sweep over a cached pure DSL attack helper.",
+      "id": "attack_vs_ac_sweep:warm",
+      "mode": "warm",
+      "name": "Attack vs AC Sweep",
+      "samples_s": [
+        0.00018023897428065538,
+        0.0001128910225816071,
+        0.00011858201469294727,
+        0.00010248200851492584,
+        0.00010643998393788934,
+        0.00010964600369334221,
+        0.00013140600640326738,
+        0.00010571899474598467,
+        0.00017581001156941056
+      ],
+      "summary": {
+        "count": 9,
+        "max": 0.00018023897428065538,
+        "mean": 0.0001270238911577811,
+        "median": 0.0001128910225816071,
+        "min": 0.00010248200851492584,
+        "stderr_mean": 1.0058183254191684e-05,
+        "stdev": 3.0174549762575053e-05
+      }
+    },
+    {
+      "benchmark_id": "damage_vs_ac_sweep",
+      "description": "Medium cached sweep over a pure DSL helper with repeat_sum.",
+      "id": "damage_vs_ac_sweep:cold",
+      "mode": "cold",
+      "name": "Damage vs AC Sweep",
+      "samples_s": [
+        0.0019545390096027404,
+        0.0019301529973745346,
+        0.0018450930074322969,
+        0.0017374620074406266,
+        0.0017546229937579483,
+        0.001803324994398281,
+        0.0019301529973745346,
+        0.001760995015501976,
+        0.0018716630002018064
+      ],
+      "summary": {
+        "count": 9,
+        "max": 0.0019545390096027404,
+        "mean": 0.0018431117803427493,
+        "median": 0.0018450930074322969,
+        "min": 0.0017374620074406266,
+        "stderr_mean": 2.781530429826214e-05,
+        "stdev": 8.344591289478641e-05
+      }
+    },
+    {
+      "benchmark_id": "damage_vs_ac_sweep",
+      "description": "Medium cached sweep over a pure DSL helper with repeat_sum.",
+      "id": "damage_vs_ac_sweep:warm",
+      "mode": "warm",
+      "name": "Damage vs AC Sweep",
+      "samples_s": [
+        0.0002555590181145817,
+        0.00024791600299067795,
+        0.00026538799284026027,
+        0.00021708698477596045,
+        0.00023215598776005208,
+        0.0002270760014653206,
+        0.00024146298528648913,
+        0.00022616400383412838,
+        0.00023157399846240878
+      ],
+      "summary": {
+        "count": 9,
+        "max": 0.00026538799284026027,
+        "mean": 0.00023826477505887547,
+        "median": 0.00023215598776005208,
+        "min": 0.00021708698477596045,
+        "stderr_mean": 5.191251225610002e-06,
+        "stdev": 1.5573753676830006e-05
+      }
+    },
+    {
+      "benchmark_id": "two_axis_damage_sweep",
+      "description": "Two-axis pure sweep intended to show cache-sensitive reuse.",
+      "id": "two_axis_damage_sweep:cold",
+      "mode": "cold",
+      "name": "Two-Axis Damage Sweep",
+      "samples_s": [
+        0.0036337299970909953,
+        0.0036502209841273725,
+        0.0033135889971163124,
+        0.0033621110196691006,
+        0.003383740986464545,
+        0.0033451190101914108,
+        0.0033615200081840158,
+        0.0034067039960063994,
+        0.003294915019068867
+      ],
+      "summary": {
+        "count": 9,
+        "max": 0.0036502209841273725,
+        "mean": 0.003416850001991002,
+        "median": 0.0033621110196691006,
+        "min": 0.003294915019068867,
+        "stderr_mean": 4.400633961545604e-05,
+        "stdev": 0.00013201901884636813
+      }
+    },
+    {
+      "benchmark_id": "two_axis_damage_sweep",
+      "description": "Two-axis pure sweep intended to show cache-sensitive reuse.",
+      "id": "two_axis_damage_sweep:warm",
+      "mode": "warm",
+      "name": "Two-Axis Damage Sweep",
+      "samples_s": [
+        0.0005088349862489849,
+        0.0005502130079548806,
+        0.0004575289785861969,
+        0.0004640709958039224,
+        0.0004768049984704703,
+        0.0004574180056806654,
+        0.00047578298836015165,
+        0.000737744994694367,
+        0.0004547830030787736
+      ],
+      "summary": {
+        "count": 9,
+        "max": 0.000737744994694367,
+        "mean": 0.0005092424398753792,
+        "median": 0.00047578298836015165,
+        "min": 0.0004547830030787736,
+        "stderr_mean": 3.0375025651665033e-05,
+        "stdev": 9.11250769549951e-05
+      }
+    }
+  ],
+  "schema_version": 1
+}

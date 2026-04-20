@@ -1,0 +1,175 @@
+{
+  "benchmark_id": "monte_carlo_comparison_chaos_bolt_chain_comparison",
+  "benchmark_name": "Monte Carlo Comparison: Chaos Bolt chain (comparison)",
+  "category": "monte_carlo_comparison",
+  "config": {
+    "baseline_sample_counts": [
+      4000
+    ],
+    "numpy_batch_size": 50000,
+    "numpy_processes": 16,
+    "numpy_sample_counts": [
+      4000,
+      32000
+    ],
+    "output_mode": "tracked",
+    "preset": "comparison",
+    "seed": 1729,
+    "skip_validation": true,
+    "validation_trials": 120000
+  },
+  "environment": {
+    "git_branch": null,
+    "git_commit": null,
+    "git_dirty": false,
+    "hostname": "fedora.fritz.box",
+    "platform": "Linux-6.19.11-200.fc43.x86_64-x86_64-with-glibc2.42",
+    "python_version": "3.14.3",
+    "run_context": "during-commit",
+    "timestamp": "2026-04-20T21:52:49+02:00"
+  },
+  "representative_lines": [
+    {
+      "label": "baseline 4,000",
+      "lines": [
+        "(1, 'normal', 7, 0, 2, 12) exact_mean=11.688 sampled_mean=11.815 exact_support=87 sampled_support=45",
+        "(3, 'normal', 7, 0, 2, 12) exact_mean=18.233 sampled_mean=18.330 exact_support=133 sampled_support=66",
+        "(4, 'elven_accuracy', 13, 1, 6, 24) exact_mean=28.328 sampled_mean=28.041 exact_support=476 sampled_support=98"
+      ]
+    },
+    {
+      "label": "numpy 4,000",
+      "lines": [
+        "(1, 'normal', 7, 0, 2, 12) exact_mean=11.688 sampled_mean=11.748 exact_support=87 sampled_support=51",
+        "(3, 'normal', 7, 0, 2, 12) exact_mean=18.233 sampled_mean=18.247 exact_support=133 sampled_support=69",
+        "(4, 'elven_accuracy', 13, 1, 6, 24) exact_mean=28.328 sampled_mean=28.232 exact_support=476 sampled_support=96"
+      ]
+    },
+    {
+      "label": "numpy 32,000",
+      "lines": [
+        "(1, 'normal', 7, 0, 2, 12) exact_mean=11.688 sampled_mean=11.627 exact_support=87 sampled_support=56",
+        "(3, 'normal', 7, 0, 2, 12) exact_mean=18.233 sampled_mean=18.154 exact_support=133 sampled_support=81",
+        "(4, 'elven_accuracy', 13, 1, 6, 24) exact_mean=28.328 sampled_mean=28.342 exact_support=476 sampled_support=131"
+      ]
+    }
+  ],
+  "rows": [
+    {
+      "backend": "dice exact (naive DSL)",
+      "elapsed_s": 23.957484952989034,
+      "id": "dice_exact_naive",
+      "rep_mean_abs_error": 5.921189464667502e-15,
+      "samples_per_cell": null,
+      "scope": "full sweep (1,536 cells)",
+      "summary": {
+        "count": 1,
+        "max": 23.957484952989034,
+        "mean": 23.957484952989034,
+        "median": 23.957484952989034,
+        "min": 23.957484952989034,
+        "stderr_mean": 0.0,
+        "stdev": 0.0
+      },
+      "vs_exact": 1.0
+    },
+    {
+      "backend": "dice exact (delta DSL)",
+      "elapsed_s": 21.127505736018065,
+      "id": "dice_exact_delta_dsl",
+      "rep_mean_abs_error": 5.921189464667502e-15,
+      "samples_per_cell": null,
+      "scope": "full sweep (1,536 cells)",
+      "summary": {
+        "count": 1,
+        "max": 21.127505736018065,
+        "mean": 21.127505736018065,
+        "median": 21.127505736018065,
+        "min": 21.127505736018065,
+        "stderr_mean": 0.0,
+        "stdev": 0.0
+      },
+      "vs_exact": 0.8818749454492347
+    },
+    {
+      "backend": "dice exact (host functions)",
+      "elapsed_s": 1.232947807002347,
+      "id": "dice_exact_host",
+      "rep_mean_abs_error": 6.5133084111342514e-15,
+      "samples_per_cell": null,
+      "scope": "full sweep (1,536 cells)",
+      "summary": {
+        "count": 1,
+        "max": 1.232947807002347,
+        "mean": 1.232947807002347,
+        "median": 1.232947807002347,
+        "min": 1.232947807002347,
+        "stderr_mean": 0.0,
+        "stdev": 0.0
+      },
+      "vs_exact": 0.051463991709552105
+    },
+    {
+      "backend": "Naive Python Monte Carlo",
+      "elapsed_s": 10.529088607989252,
+      "id": "baseline_4000",
+      "rep_mean_abs_error": 0.1710589157321163,
+      "samples_per_cell": 4000,
+      "scope": "full sweep (1,536 cells)",
+      "summary": {
+        "count": 1,
+        "max": 10.529088607989252,
+        "mean": 10.529088607989252,
+        "median": 10.529088607989252,
+        "min": 10.529088607989252,
+        "stderr_mean": 0.0,
+        "stdev": 0.0
+      },
+      "vs_exact": 0.4394905654182869
+    },
+    {
+      "backend": "Vectorized NumPy Monte Carlo",
+      "elapsed_s": 0.48763848800444975,
+      "id": "numpy_4000",
+      "rep_mean_abs_error": 0.05739224906544985,
+      "samples_per_cell": 4000,
+      "scope": "full sweep (1,536 cells)",
+      "summary": {
+        "count": 1,
+        "max": 0.48763848800444975,
+        "mean": 0.48763848800444975,
+        "median": 0.48763848800444975,
+        "min": 0.48763848800444975,
+        "stderr_mean": 0.0,
+        "stdev": 0.0
+      },
+      "vs_exact": 0.020354327215954694
+    },
+    {
+      "backend": "Vectorized NumPy Monte Carlo",
+      "elapsed_s": 0.7755942310031969,
+      "id": "numpy_32000",
+      "rep_mean_abs_error": 0.05063900093454995,
+      "samples_per_cell": 32000,
+      "scope": "full sweep (1,536 cells)",
+      "summary": {
+        "count": 1,
+        "max": 0.7755942310031969,
+        "mean": 0.7755942310031969,
+        "median": 0.7755942310031969,
+        "min": 0.7755942310031969,
+        "stderr_mean": 0.0,
+        "stdev": 0.0
+      },
+      "vs_exact": 0.03237377514898243
+    }
+  ],
+  "schema_version": 1,
+  "summary_lines": [
+    "Preset: comparison",
+    "Axis order: SLOT, MODE, ATTACK, BLESS, TARGETS, AC",
+    "Timing scope: full exact sweep across 1,536 cells",
+    "Sample counts: baseline=4,000 numpy=4,000, 32,000",
+    "NumPy config: processes=16 batch_size=50,000"
+  ]
+}

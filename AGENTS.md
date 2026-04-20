@@ -50,6 +50,7 @@ The active runtime is now the parser/interpreter/engine stack plus the CLI in `d
 
 ## Working Notes For Agents
 
+- Note observations and pain-point that you observe while working with dice in `LANGUAGE_OBSERVATIONS_AND_PAINPOINTS.md`.
 - Keep `README.md` brief during development. Its main job is to be the current user-facing reference for tested language semantics.
 - Keep `manual/` as the canonical long-form user-facing manual. It is also the source for the MkDocs site defined in `mkdocs.yml`.
 - Treat `DICE_REWRITE_PLAN.md` as the active design brief for ongoing semantic changes.
@@ -67,6 +68,10 @@ The active runtime is now the parser/interpreter/engine stack plus the CLI in `d
 - Use `==` for singleton exact checks such as `d20 == 20`.
 - Use ordinary comparisons for contiguous threshold-style events such as `d20 >= 15`.
 - Use `in` only for genuine non-contiguous or structured membership queries such as `d20 in {1, 20}`.
+- Benchmark work is split into `fast/`, `end_to_end/`, `slow/`, `exploratory/`, and `monte_carlo_comparison/` under `benchmarks/`.
+- Commit-time benchmark runs are driven by the pre-commit hook from the staged tree. A normal `git commit` runs `fast/` and `end_to_end/` and writes tracked results marked `during-commit`.
+- To also run the slower suites during commit, use environment flags such as `BENCHMARK_SLOW=1 git commit` and `BENCHMARK_SLOW=1 BENCHMARK_MONTE_CARLO=1 git commit`.
+- When working on performance-sensitive changes, run the full benchmark suite before finishing the change. In practice this means the default commit-time suites plus `slow/` and the Monte Carlo comparisons.
 
 ## Tests
 

@@ -22,6 +22,19 @@ def attack_roll(rng: random.Random, mode: str) -> int:
     raise ValueError("unknown mode {!r}".format(mode))
 
 
+def chaos_damage_and_doubles(rng: random.Random, *, slot_level: int, critical: bool, leap_damage: int = 0) -> tuple[int, bool]:
+    # The same d8 pair determines both the damage pair sum and whether the bolt
+    # can leap. That correlation is part of the actual spell semantics and must
+    # be preserved in all benchmark implementations.
+    die1 = roll_die(rng, 8)
+    die2 = roll_die(rng, 8)
+    damage = die1 + die2 + sum(roll_die(rng, 6) for _ in range(slot_level)) + leap_damage
+    if critical:
+        damage += roll_die(rng, 8) + roll_die(rng, 8)
+        damage += sum(roll_die(rng, 6) for _ in range(slot_level))
+    return damage, die1 == die2
+
+
 def chaos_strike(
     rng: random.Random,
     *,
@@ -32,21 +45,17 @@ def chaos_strike(
     bless: int,
 ) -> tuple[int, bool]:
     roll = attack_roll(rng, mode)
-    hit_bonus = roll_die(rng, 4) if bless else 0
     if roll == 1:
         return 0, False
+    if roll == 20:
+        return chaos_damage_and_doubles(rng, slot_level=slot_level, critical=True)
 
-    hit = roll == 20 or (roll + attack_bonus + hit_bonus >= ac)
+    hit_bonus = roll_die(rng, 4) if bless else 0
+    hit = roll + attack_bonus + hit_bonus >= ac
     if not hit:
         return 0, False
 
-    die1 = roll_die(rng, 8)
-    die2 = roll_die(rng, 8)
-    damage = die1 + die2 + sum(roll_die(rng, 6) for _ in range(slot_level))
-    if roll == 20:
-        damage += roll_die(rng, 8) + roll_die(rng, 8)
-        damage += sum(roll_die(rng, 6) for _ in range(slot_level))
-    return damage, die1 == die2
+    return chaos_damage_and_doubles(rng, slot_level=slot_level, critical=False)
 
 
 def chaos_bolt_trial(
@@ -75,7 +84,14 @@ def chaos_bolt_trial(
     return total
 
 
-def sample_coordinate_distribution(coordinate, trials: int, seed: int) -> dict[int, float]:
+def sample_coordinate_distribution(
+    coordinate,
+    trials: int,
+    seed: int,
+    config=DEFAULT_CONFIG,
+    **_unused,
+) -> dict[int, float]:
+    del config
     slot_level, mode, attack_bonus, bless, targets, ac = coordinate
     rng = random.Random(seed)
     counts: Counter[int] = Counter()

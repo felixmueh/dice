@@ -14,14 +14,22 @@ from time import perf_counter
 if __package__ in (None, ""):
     from pathlib import Path
 
-    ROOT = Path(__file__).resolve().parents[2]
+    ROOT = Path(__file__).resolve().parents[3]
     if str(ROOT) not in sys.path:
         sys.path.insert(0, str(ROOT))
     from benchmarks import common
-    from benchmarks.chaos_bolt_chain import exact_dice, plotting, python_numpy, python_random_baseline, workload
+    from benchmarks.monte_carlo_comparison.chaos_bolt_chain import (
+        exact_dice_better,
+        exact_dice,
+        exact_dice_host,
+        plotting,
+        python_numpy,
+        python_random_baseline,
+        workload,
+    )
 else:
     from benchmarks import common
-    from . import exact_dice, plotting, python_numpy, python_random_baseline, workload
+    from . import exact_dice, exact_dice_better, exact_dice_host, plotting, python_numpy, python_random_baseline, workload
 
 
 BACKENDS = {
@@ -33,6 +41,13 @@ BACKEND_LABELS = {
     "baseline": "Naive Python Monte Carlo",
     "numpy": "Vectorized NumPy Monte Carlo",
 }
+EXACT_PROBABILITY_TOLERANCE = 1e-12
+
+EXACT_VARIANTS = (
+    ("dice_exact_naive", "dice exact (naive DSL)", exact_dice),
+    ("dice_exact_delta_dsl", "dice exact (delta DSL)", exact_dice_better),
+    ("dice_exact_host", "dice exact (host functions)", exact_dice_host),
+)
 
 
 @dataclass(frozen=True)
@@ -43,6 +58,7 @@ class BenchmarkConfig:
     validation_trials: int
     seed: int
     skip_validation: bool
+    output_mode: str
     plot_path: str | None
     numpy_batch_size: int
     numpy_processes: int
@@ -95,6 +111,12 @@ def parse_args() -> BenchmarkConfig:
         help="Skip sampled-backend validation against the exact dice result.",
     )
     parser.add_argument(
+        "--output",
+        choices=common.OUTPUT_MODES,
+        default="local",
+        help="Write benchmark artifacts to benchmarks/results/<mode>/.",
+    )
+    parser.add_argument(
         "--plot-path",
         default=None,
         help="Optional PNG output path for representative overlays.",
@@ -122,6 +144,7 @@ def parse_args() -> BenchmarkConfig:
         validation_trials=args.validation_trials,
         seed=args.seed,
         skip_validation=args.skip_validation,
+        output_mode=args.output,
         plot_path=args.plot_path,
         numpy_batch_size=args.numpy_batch_size,
         numpy_processes=max(1, args.numpy_processes),
@@ -173,6 +196,34 @@ def format_ratio(value: float) -> str:
     return "<0.01x" if value < 0.01 else "{:.2f}x".format(value)
 
 
+def _distribution_dict(value):
+    return dict(value.items())
+
+
+def validate_exact_match(reference_result, candidate_result, label: str) -> None:
+    if set(reference_result.cells) != set(candidate_result.cells):
+        raise SystemExit("exact backend {} returned a different coordinate set".format(label))
+    mismatches = []
+    for coordinate, reference_distribution in reference_result.cells.items():
+        candidate_distribution = candidate_result.cells[coordinate]
+        reference_items = _distribution_dict(reference_distribution)
+        candidate_items = _distribution_dict(candidate_distribution)
+        if any(
+            abs(reference_items.get(outcome, 0.0) - candidate_items.get(outcome, 0.0)) > EXACT_PROBABILITY_TOLERANCE
+            for outcome in set(reference_items) | set(candidate_items)
+        ):
+            mismatches.append(coordinate)
+            if len(mismatches) == 3:
+                break
+    if mismatches:
+        raise SystemExit(
+            "exact backend {} disagrees with naive dice result at {}".format(
+                label,
+                ", ".join(str(coordinate) for coordinate in mismatches),
+            )
+        )
+
+
 def main() -> None:
     config = parse_args()
     coordinate_count = len(tuple(workload.coordinate_space(config.sweep_config)))
@@ -195,25 +246,38 @@ def main() -> None:
         )
     )
 
-    exact_start = perf_counter()
-    exact_result = exact_dice.evaluate_exact_sweep(config.sweep_config)
-    exact_elapsed = perf_counter() - exact_start
+    exact_results = []
+    for variant_id, variant_label, variant_module in EXACT_VARIANTS:
+        exact_start = perf_counter()
+        variant_result = variant_module.evaluate_exact_sweep(config.sweep_config)
+        exact_elapsed = perf_counter() - exact_start
+        exact_results.append((variant_id, variant_label, variant_result, exact_elapsed))
+
+    exact_result = exact_results[0][2]
+    exact_elapsed = exact_results[0][3]
+
+    for _variant_id, variant_label, variant_result, _variant_elapsed in exact_results[1:]:
+        validate_exact_match(exact_result, variant_result, variant_label)
 
     if not config.skip_validation:
         for backend_name, _sample_counts in benchmark_rows(config):
             validate_backend(exact_result, backend_name, config)
 
     sampled_runs = {}
-    table_rows = [
-        (
-            "dice exact",
-            "-",
-            "full sweep ({:,} cells)".format(coordinate_count),
-            "{:.3f}".format(exact_elapsed),
-            "1.00x",
-            "0.0000",
+    result_rows = []
+    for variant_id, variant_label, variant_result, variant_elapsed in exact_results:
+        result_rows.append(
+            {
+                "id": variant_id,
+                "backend": variant_label,
+                "samples_per_cell": None,
+                "scope": "full sweep ({:,} cells)".format(coordinate_count),
+                "elapsed_s": variant_elapsed,
+                "summary": common.summarize_samples([variant_elapsed]),
+                "vs_exact": variant_elapsed / exact_elapsed,
+                "rep_mean_abs_error": common.mean_absolute_error(exact_result, variant_result, representative_cells),
+            }
         )
-    ]
 
     for backend_index, (backend_name, sample_counts) in enumerate(benchmark_rows(config), start=1):
         backend = BACKENDS[backend_name]
@@ -229,31 +293,86 @@ def main() -> None:
             label = "{} {:,}".format(backend_name, sample_count)
             sampled_runs[label] = sampled_result
             error = common.mean_absolute_error(exact_result, sampled_result, representative_cells)
-            table_rows.append(
-                (
-                    BACKEND_LABELS[backend_name],
-                    "{:,}".format(sample_count),
-                    "full sweep ({:,} cells)".format(coordinate_count),
-                    "{:.3f}".format(sampled_elapsed),
-                    format_ratio(sampled_elapsed / exact_elapsed),
-                    "{:.4f}".format(error),
-                )
+            result_rows.append(
+                {
+                    "id": "{}_{}".format(backend_name, sample_count),
+                    "backend": BACKEND_LABELS[backend_name],
+                    "samples_per_cell": sample_count,
+                    "scope": "full sweep ({:,} cells)".format(coordinate_count),
+                    "elapsed_s": sampled_elapsed,
+                    "summary": common.summarize_samples([sampled_elapsed]),
+                    "vs_exact": sampled_elapsed / exact_elapsed,
+                    "rep_mean_abs_error": error,
+                }
             )
 
     print()
     print(
         common.markdown_table(
-            ("Backend", "Samples / cell", "Scope", "Time (s)", "vs dice", "Rep. mean abs err"),
-            table_rows,
+            (
+                "Backend",
+                "Samples / cell",
+                "Scope",
+                "Time (s)",
+                "Stdev (s)",
+                "StdErr Mean (s)",
+                "vs dice",
+                "Rep. mean abs err",
+            ),
+            [common._row_columns(row) for row in result_rows],
         )
     )
 
+    representative_lines = []
     print()
     print("Representative cells:")
     for label, sampled_result in sampled_runs.items():
+        lines = common.summarize_cells(exact_result, sampled_result, representative_cells)
+        representative_lines.append({"label": label, "lines": lines})
         print("  {}:".format(label))
-        for line in common.summarize_cells(exact_result, sampled_result, representative_cells):
+        for line in lines:
             print("    " + line)
+
+    artifact_paths = common.write_benchmark_artifacts(
+        {
+            "schema_version": 1,
+            "benchmark_id": "monte_carlo_comparison_chaos_bolt_chain_{}".format(config.sweep_config.label),
+            "benchmark_name": "Monte Carlo Comparison: Chaos Bolt chain ({})".format(config.sweep_config.label),
+            "category": "monte_carlo_comparison",
+            "environment": common.benchmark_environment(),
+            "summary_lines": [
+                "Preset: {}".format(config.sweep_config.label),
+                "Axis order: {}".format(", ".join(workload.AXIS_ORDER)),
+                "Timing scope: full exact sweep across {:,} cells".format(coordinate_count),
+                "Sample counts: baseline={} numpy={}".format(
+                    ", ".join("{:,}".format(count) for count in config.baseline_sample_counts) or "off",
+                    ", ".join("{:,}".format(count) for count in config.numpy_sample_counts) or "off",
+                ),
+                "NumPy config: processes={} batch_size={:,}".format(
+                    config.numpy_processes,
+                    config.numpy_batch_size,
+                ),
+            ],
+            "config": {
+                "preset": config.sweep_config.label,
+                "baseline_sample_counts": list(config.baseline_sample_counts),
+                "numpy_sample_counts": list(config.numpy_sample_counts),
+                "validation_trials": config.validation_trials,
+                "seed": config.seed,
+                "skip_validation": config.skip_validation,
+                "output_mode": config.output_mode,
+                "numpy_batch_size": config.numpy_batch_size,
+                "numpy_processes": config.numpy_processes,
+            },
+            "rows": result_rows,
+            "representative_lines": representative_lines,
+        },
+        output_mode=config.output_mode,
+    )
+    if artifact_paths is not None:
+        json_path, markdown_path = artifact_paths
+        print()
+        print("Artifacts written to {} and {}".format(json_path, markdown_path))
 
     if config.plot_path:
         headline_runs = {

@@ -9,10 +9,10 @@ sessions.
 Two benchmark families were useful because they stress different parts of the
  engine:
 
-- `benchmarks/hexed_scorching_ray/`
+- `benchmarks/monte_carlo_comparison/hexed_scorching_ray/`
   Heavy exact additive convolution over structured integer damage
   distributions.
-- `benchmarks/chaos_bolt_chain/`
+- `benchmarks/monte_carlo_comparison/chaos_bolt_chain/`
   Heavy recursive branching and split accumulation with much more branch churn
   than plain additive convolution.
 
@@ -103,7 +103,7 @@ Important progression:
 
 Most recent exact wall-clock observation:
 
-- `benchmarks/hexed_scorching_ray/exact_dice.py` full exact sweep around
+- `benchmarks/monte_carlo_comparison/hexed_scorching_ray/exact_dice.py` full exact sweep around
   `0.5s`
 
 Profile conclusion after the widened integer fast path:
@@ -134,6 +134,30 @@ This means:
 - Chaos Bolt is mainly stressing generic split/branch execution
 - not primarily the additive convolution core
 
+Recent comparison work added three exact variants for the Chaos Bolt benchmark:
+
+- naive dice-language implementation
+- reduced-state dice-language implementation
+- host-function implementation using `@dicefunction(pure=True)`
+
+Most recent wall-clock observation on the `comparison` preset (`1,536` cells):
+
+- naive DSL exact: about `11.6s`
+- reduced-state DSL exact: about `12.0s`
+- host-function exact: about `1.2s`
+
+Important conclusions from that comparison:
+
+- the reduced-state rewrite inside the current dice language did not improve
+  runtime by itself
+- the host-function rewrite was roughly `9x` faster than the naive DSL version
+- that speedup comes from cache behavior much more than from different math:
+  host functions are cached per projected scalar call, while DSL functions are
+  still cached at the coarser whole-call level
+
+So for this workload the current language-level representation is not the main
+limiter. Cache granularity is.
+
 That distinction is important when evaluating future optimizations.
 
 ## What The Traces Currently Suggest
@@ -156,6 +180,21 @@ Likely next targets:
 - canonicalize once at the end instead of once per temporary branch object
 - reduce temporary `Sweep` / `FiniteMeasure` churn
 - add cheaper handling for deterministic or Bernoulli branch conditions
+- explore resolving sweeps earlier at function boundaries or other narrow seams
+  so caching can happen on smaller scalar subproblems instead of only on large
+  lifted sweep results
+
+The new Chaos Bolt variant comparison strongly suggests that earlier sweep
+resolution could be a real optimization seam:
+
+- host functions effectively resolve sweeps before entering the pure Python
+  recurrence, so cache entries are keyed by scalar projected arguments
+- the equivalent reduced-state DSL version still evaluates under the current
+  operator-level lifting model, so it does not get the same fine-grained reuse
+
+This does not automatically mean "move all sweep handling earlier", but it is
+clear evidence that finer-grained cache keys can matter a lot on branch-heavy
+exact workloads.
 
 ## FFT / Array Convolution Findings
 

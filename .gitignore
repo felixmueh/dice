@@ -147,3 +147,6 @@ static
 
 # dnd sources
 /dnd-sources/
+
+# Local benchmark artifacts
+/benchmarks/results/local/

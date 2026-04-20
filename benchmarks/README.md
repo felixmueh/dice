@@ -3,85 +3,107 @@
 Exploratory performance benchmarks live here instead of under the runtime or
 the example library.
 
-Current benchmark workloads:
+Benchmark suites:
 
-- `hexed_scorching_ray`
+- `fast/`
+  Prepared-eval benchmarks. Parsing and interpreter startup are excluded.
+  These are intended to cover elemental operations, representative DSL shapes,
+  and cache-sensitive sweep workloads.
+- `slow/`
+  Budget-frontier benchmarks. These search for the largest sweep scale that
+  still fits within a configured wall-clock budget.
+- `end_to_end/`
+  Fresh-session wall-clock benchmarks. Parsing and interpreter startup are
+  included.
+- `monte_carlo_comparison/`
+  Exploratory exact-vs-sampling comparisons for larger workloads.
+- `exploratory/`
+  One-off scaling probes and plots that reuse the benchmark workload builders
+  but are not intended to be stable tracked benchmarks.
+
+Current Monte Carlo comparison workloads:
+
+- `monte_carlo_comparison/hexed_scorching_ray`
   A deep D&D damage sweep used to compare the exact `dice` runtime against
   Monte Carlo implementations.
-- `chaos_bolt_chain`
+- `monte_carlo_comparison/chaos_bolt_chain`
   A bounded multi-target Chaos Bolt cascade with repeated attack rolls,
-  conditional jumps, and deeper roll-dependent stop logic.
+  conditional jumps, and deeper roll-dependent stop logic. This runner now
+  times three exact variants before the Monte Carlo backends:
+  the naive DSL program, a reduced-state DSL program, and a host-function
+  implementation that exercises per-call host caching.
 
-## Headline takeaway
+The Monte Carlo comparison runners are exploratory. They may reuse the shared
+benchmark helpers, but their report artifacts are local-only and should not be
+checked in.
 
-For additive combat sweeps like `hexed_scorching_ray`:
+## Reports
 
-- Dice is a lot more accurate and much faster than naive Monte Carlo.
-- Dice is in the same ballpark as a more optimized Monte Carlo version while
-  also being exact and much easier to write.
+All suites can write JSON plus Markdown reports.
 
-For branch-heavy exact workloads like `chaos_bolt_chain`, the exact engine is
-still slower than the optimized Monte Carlo path today. That benchmark remains
-useful as the current stress test for `split`/decision-tree execution.
+- `benchmarks/results/local/`
+  Development runs. Gitignored by default.
+- `benchmarks/results/tracked/`
+  Deliberate checked-in baselines.
 
-## Headline image
+Each run writes:
 
-The plot below is intended for the README and compares the exact `dice`
-distribution against NumPy Monte Carlo at `4,000` and `32,000` samples per
-cell.
+- a JSON artifact for later machine processing
+- a Markdown artifact for quick human inspection
 
-![Hexed Scorching Ray accuracy comparison](docs/images/hexed_scorching_ray_accuracy.png)
-
-Generated with:
-
-```bash
-python3 /home/felix/_Documents/Projects/dice/benchmarks/hexed_scorching_ray/run.py \
-  --plot-path /home/felix/_Documents/Projects/dice/docs/images/hexed_scorching_ray_accuracy.png
-```
-
-## Current numbers
-
-### Hexed Scorching Ray
-
-Timing scope: full exact sweep across `1,260` cells.
-
-| Backend | Samples / cell | Scope | Time (s) | vs dice | Rep. mean abs err |
-| --- | --- | --- | --- | --- | --- |
-| dice exact | - | full sweep (1,260 cells) | 0.500 | 1.00x | 0.0000 |
-| Naive Python Monte Carlo | 4,000 | full sweep (1,260 cells) | 32.885 | 65.81x | 0.2184 |
-| Vectorized NumPy Monte Carlo | 4,000 | full sweep (1,260 cells) | 0.353 | 0.71x | 0.2923 |
-| Vectorized NumPy Monte Carlo | 32,000 | full sweep (1,260 cells) | 0.662 | 1.32x | 0.0861 |
-
-### Chaos Bolt Chain
-
-Timing scope: full sweep for the `small` preset (`48` cells).
-
-| Backend | Samples / cell | Scope | Time (s) | vs dice | Rep. mean abs err |
-| --- | --- | --- | --- | --- | --- |
-| dice exact | - | full sweep (48 cells) | 18.626 | 1.00x | 0.0000 |
-| Naive Python Monte Carlo | 4,000 | full sweep (48 cells) | 0.372 | 0.02x | 0.1277 |
-| Vectorized NumPy Monte Carlo | 4,000 | full sweep (48 cells) | 0.079 | <0.01x | 0.1298 |
-| Vectorized NumPy Monte Carlo | 32,000 | full sweep (48 cells) | 0.114 | <0.01x | 0.0109 |
+Local runs are intended for development-time comparison against tracked
+baselines without creating benchmark churn in the repository.
 
 ## Commands
 
 ```bash
-python3 /home/felix/_Documents/Projects/dice/benchmarks/hexed_scorching_ray/run.py
+python3 /home/felix/_Documents/Projects/dice/benchmarks/fast/run.py
 ```
 
 ```bash
-python3 /home/felix/_Documents/Projects/dice/benchmarks/chaos_bolt_chain/run.py
+python3 /home/felix/_Documents/Projects/dice/benchmarks/slow/run.py
+```
+
+```bash
+python3 /home/felix/_Documents/Projects/dice/benchmarks/end_to_end/run.py
+```
+
+```bash
+python3 /home/felix/_Documents/Projects/dice/benchmarks/monte_carlo_comparison/hexed_scorching_ray/run.py
+```
+
+```bash
+python3 /home/felix/_Documents/Projects/dice/benchmarks/monte_carlo_comparison/chaos_bolt_chain/run.py
+```
+
+```bash
+python3 /home/felix/_Documents/Projects/dice/benchmarks/exploratory/run.py
 ```
 
 Notes:
 
 - These benchmarks are exploratory and are not part of the shipped module
   surface.
+- The pre-commit hook now benchmarks the staged tree, not unstaged working-tree
+  edits. It always runs `fast/` and `end_to_end/` and writes tracked artifacts
+  marked `during-commit`.
+- Optional commit-time suites:
+  `BENCHMARK_SLOW=1 git commit`
+  and
+  `BENCHMARK_SLOW=1 BENCHMARK_MONTE_CARLO=1 git commit`
+- `fast/`, `slow/`, and `end_to_end/` may write `local/` or `tracked/`
+  artifacts depending on `--output`.
+- The Monte Carlo comparison runners write local report artifacts under
+  `benchmarks/results/local/` by default so development runs are easy to
+  compare without creating tracked benchmark churn.
+- If you do not want report artifacts for a run, pass `--output none`.
 - The NumPy backend still rolls primitive dice directly. It does not use
   precomputed alias tables, PMFs, or other derived stochastic primitives.
 - The NumPy backend can split each state's trial count evenly across worker
   processes with `--numpy-processes N`.
 - The Chaos Bolt runner now benchmarks preset-based full sweeps generated from
-  Python. Use `--preset medium` or `--preset large` when you want to push the
-  workload further, but expect exact full-sweep cost to grow quickly on the
-  branch-heavy presets.
+  Python. The default preset is `comparison`, which is intended to be large
+  enough to be performance-relevant without turning the default comparison into
+  a multi-minute run. Use `--preset small` or `--preset medium` when iterating,
+  and move up to `--preset large` only when you intentionally want a much
+  harder branch-heavy benchmark.

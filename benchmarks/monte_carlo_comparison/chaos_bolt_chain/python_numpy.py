@@ -47,6 +47,9 @@ def _simulate_state_histograms(
         else:
             bless_rolls = 0
 
+        # The same sampled d8 pair drives both:
+        # - the base damage pair sum
+        # - whether the bolt can leap to the next target
         pair_d8 = rng.integers(1, 9, size=(batch, max_targets_count, 2), dtype=np.int16)
         pair_sums = pair_d8.sum(axis=2, dtype=np.int16)
         doubles = pair_d8[:, :, 0] == pair_d8[:, :, 1]
@@ -65,8 +68,9 @@ def _simulate_state_histograms(
 
         active = np.zeros((batch, max_targets_count), dtype=bool)
         active[:, 0] = True
+        continue_chain = hits & doubles
         for target_index in range(1, max_targets_count):
-            active[:, target_index] = active[:, target_index - 1] & hits[:, target_index - 1] & doubles[:, target_index - 1]
+            active[:, target_index] = active[:, target_index - 1] & continue_chain[:, target_index - 1]
 
         for slot_index, slot_level in enumerate(slots):
             base_damage = pair_sums + base_d6_prefix[:, :, slot_level - 1]

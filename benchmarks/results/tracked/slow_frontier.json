@@ -1,0 +1,113 @@
+{
+  "benchmark_id": "slow_frontier",
+  "benchmark_name": "Slow Benchmarks: Budget Frontier",
+  "category": "slow",
+  "config": {
+    "budget_s": 1.0,
+    "filters": [],
+    "rounds": 1,
+    "warmups": 0
+  },
+  "environment": {
+    "git_branch": null,
+    "git_commit": null,
+    "git_dirty": false,
+    "hostname": "fedora.fritz.box",
+    "platform": "Linux-6.19.11-200.fc43.x86_64-x86_64-with-glibc2.42",
+    "python_version": "3.14.3",
+    "run_context": "during-commit",
+    "timestamp": "2026-04-20T21:51:15+02:00"
+  },
+  "rows": [
+    {
+      "benchmark_id": "damage_vs_ac_frontier",
+      "budget_s": 1.0,
+      "first_fail_cells": null,
+      "first_fail_point": null,
+      "first_fail_scale": null,
+      "first_fail_summary": null,
+      "frontier_cells": 640,
+      "frontier_point": "ac=64 repeats=10 cells=640",
+      "frontier_samples_s": [
+        0.021728513995185494
+      ],
+      "frontier_summary": {
+        "count": 1,
+        "max": 0.021728513995185494,
+        "mean": 0.021728513995185494,
+        "median": 0.021728513995185494,
+        "min": 0.021728513995185494,
+        "stderr_mean": 0.0,
+        "stdev": 0.0
+      },
+      "id": "damage_vs_ac_frontier:1.000",
+      "max_scale": 42,
+      "name": "Damage Sweep Frontier",
+      "search_start_scale": null,
+      "unit": "cells"
+    },
+    {
+      "benchmark_id": "hexed_scorching_ray_frontier",
+      "budget_s": 1.0,
+      "first_fail_cells": null,
+      "first_fail_point": null,
+      "first_fail_scale": null,
+      "first_fail_summary": null,
+      "frontier_cells": 2016,
+      "frontier_point": "slots=7 modes=3 attacks=3 bless=2 ac=16 cells=2016",
+      "frontier_samples_s": [
+        0.7130870030086953
+      ],
+      "frontier_summary": {
+        "count": 1,
+        "max": 0.7130870030086953,
+        "mean": 0.7130870030086953,
+        "median": 0.7130870030086953,
+        "min": 0.7130870030086953,
+        "stderr_mean": 0.0,
+        "stdev": 0.0
+      },
+      "id": "hexed_scorching_ray_frontier:1.000",
+      "max_scale": 360,
+      "name": "Hexed Scorching Ray Frontier",
+      "search_start_scale": null,
+      "unit": "cells"
+    },
+    {
+      "benchmark_id": "chaos_bolt_chain_frontier",
+      "budget_s": 1.0,
+      "first_fail_cells": 64,
+      "first_fail_point": "slots=2 modes=2 attacks=2 bless=2 targets=1 ac=4 cells=64",
+      "first_fail_scale": 62,
+      "first_fail_summary": {
+        "count": 1,
+        "max": 1.0579225449764635,
+        "mean": 1.0579225449764635,
+        "median": 1.0579225449764635,
+        "min": 1.0579225449764635,
+        "stderr_mean": 0.0,
+        "stdev": 0.0
+      },
+      "frontier_cells": 64,
+      "frontier_point": "slots=2 modes=2 attacks=2 bless=1 targets=2 ac=4 cells=64",
+      "frontier_samples_s": [
+        0.6446711659955326
+      ],
+      "frontier_summary": {
+        "count": 1,
+        "max": 0.6446711659955326,
+        "mean": 0.6446711659955326,
+        "median": 0.6446711659955326,
+        "min": 0.6446711659955326,
+        "stderr_mean": 0.0,
+        "stdev": 0.0
+      },
+      "id": "chaos_bolt_chain_frontier:1.000",
+      "max_scale": 61,
+      "name": "Chaos Bolt Chain Frontier",
+      "search_start_scale": null,
+      "unit": "cells"
+    }
+  ],
+  "schema_version": 1
+}

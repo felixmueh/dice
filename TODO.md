@@ -1,3 +1,21 @@
+# Improve AGENTS.md (smaller?)
+# Improve syntax for correlated actions (let binding?)
+```dice
+chaos_resolve_damage(slot_level, leap_damage, crit):
+    split d8 as die1
+    | otherwise -> split d8 as die2
+        | die1 == die2 -> die1 + die2 + (d6 ^ slot_level) + chaos_crit_bonus(slot_level, crit) + leap_damage
+        | otherwise -> die1 + die2 + (d6 ^ slot_level) + chaos_crit_bonus(slot_level, crit)
+```
+# Do the docs so the llm is able to write proper dice ...
+# Improve caching in dice by making functions cache not over sweeps but over single values
+(or both?)
+# Rename custom setting functions dset_*
+# Have a general function that implements value coersion
+# Validate that all values behave similar to all values they can be coerced to any any case.
+- d1 == d{1 @ 1} etc?
+## Think about draw with probability distribution from probability distribution syntax implementation. Is this really what d is doing?
+# Implement proper equality
 # Add a git pre commit hook for running tests. 
 (And benchmarks?)
 # Add a repeatable benchmark run with results checked into the repository so it is possible to compare performance over time.
@@ -47,6 +65,41 @@
 - Distributions should not include fields with probability 0 in rendering?.
 - Have high precision rationals (need to be enabled)
 - Add functionality for comparing distributions (divergences and equality)
+- Add a first-class distribution-comparison helper for diagnostics and plots.
+  Repro case to support:
+  compare the corrected Chaos Bolt damage distribution against the older
+  independent-approximation version for
+  `slot_level=4, mode="elven_accuracy", attack_bonus=13, bless=1, targets=6, ac=24`.
+  The two exact distributions have essentially the same mean
+  (`28.328426747196357` vs `28.328426747196353`) but different shape:
+  total variation distance is about `0.01374220769581852` and the largest
+  single-bin probability delta is about `0.0019466295050319243` at damage `23`.
+  Desired helper behavior:
+  take two distributions and produce
+  `mean`, `variance`, support sizes, equality/tolerance check,
+  TVD, max per-bin delta, and optionally a human-readable ranked diff of bins.
+  Also provide a plotting helper that overlays both histograms and a
+  `(left - right)` delta histogram, similar to
+  `/home/felix/_Documents/Projects/dice/benchmarks/results/local/chaos_bolt_correlated_vs_independent_hist.png`.
+  The underlying exact dice snippets used for reproduction are:
+  1. corrected correlated version:
+  nested `split d8 as die1` / `split d8 as die2` where `die1 == die2`
+  both decides the leap and uses the same pair sum in damage.
+  2. old approximation:
+  `chaos_resolve_pair(d8, leap_damage, crit_bonus)` where the doubles event
+  and the `2d8` damage kernel are not tied to the same sampled pair.
+  Another good motivating example for future correlation-aware language support:
+  a single card draw in a card-based RPG where
+  rank determines damage bonus,
+  suit determines damage type, and
+  red/black determines an extra rider effect.
+  Those are all projections of one sampled card, so modeling them as
+  independent random events is clearly wrong. This is a better example of
+  “sample one structured thing, then project several correlated properties”
+  than ordinary `split`-style branching on a scalar roll.
+  Long-term this likely wants both:
+  a Python API helper for tests/benchmarks and
+  a dice-level reporting helper for exploratory analysis.
 - `rollhigh` / `rolllow` still use recursive full enumeration of kept-dice states.
   They likely want a memoized dynamic-programming formulation instead of raw tree expansion.
 - Interesting exploration: exact finite combat analysis from Python using Markov-chain / absorbing-state methods.

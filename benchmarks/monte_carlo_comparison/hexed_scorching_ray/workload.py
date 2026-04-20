@@ -7,7 +7,7 @@ from pathlib import Path
 from textwrap import dedent
 
 
-ROOT = Path(__file__).resolve().parents[2]
+ROOT = Path(__file__).resolve().parents[3]
 
 SLOTS = tuple(range(2, 9))
 MODES = ("normal", "advantage", "elven_accuracy")
