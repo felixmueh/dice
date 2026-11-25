@@ -105,6 +105,30 @@ class CliFormattingTest(unittest.TestCase):
             "AC/BONUS   1   2\n      10  11  12\n      11  12  13",
         )
 
+    # An untyped Python helper runs once per sweep cell and returns whatever
+    # Python computes, so the cells of its result sweep can be plain ints
+    # rather than Distributions. The text formatter must treat such cells like
+    # deterministic distributions instead of calling `.items()` on them.
+    def test_sweep_of_plain_python_ints_formats_as_scalar_sweep(self):
+        @dicefunction
+        def add_two(value):
+            return value + 2
+
+        session = cli.dice_interpreter()
+        session.register_function(add_two)
+        rendered = cli._format_result_text(session("add_two([BASE:1..3])"), roundlevel=2)
+        self.assertEqual(rendered, "/BASE\n1: 3\n2: 4\n3: 5")
+
+    def test_two_axis_sweep_of_plain_python_ints_formats_as_heatmap(self):
+        @dicefunction
+        def add_bonus(ac, bonus):
+            return ac + bonus
+
+        session = cli.dice_interpreter()
+        session.register_function(add_bonus)
+        rendered = cli._format_result_text(session("add_bonus([AC:10..11], [BONUS:1..2])"), roundlevel=2)
+        self.assertEqual(rendered, "AC/BONUS   1   2\n      10  11  12\n      11  12  13")
+
     def test_json_output_returns_structured_object(self):
         rendered = cli._format_result_json(interpret_statement("d20 >= 11", roundlevel=2), roundlevel=2)
         payload = json.loads(rendered)
@@ -474,6 +498,15 @@ class CliMainIntegrationTest(unittest.TestCase):
             self.assertEqual(stdout.getvalue(), "  0: 50%\n  1: 50%\n(E): 0.50\n")
         finally:
             os.unlink(path)
+
+    def test_main_file_runs_python_extension_example(self):
+        # The README's first Python-extension example, run through the CLI.
+        path = ROOT / "examples" / "02_python_extensions" / "00_import_python_library.dice"
+        with mock.patch.object(sys, "argv", ["dice", "--file", str(path)]):
+            with mock.patch("sys.stdout", new=io.StringIO()) as stdout:
+                exit_code = cli.main()
+        self.assertEqual(exit_code, 0)
+        self.assertEqual(stdout.getvalue(), "/BASE\n1: 6\n2: 8\n3: 10\n")
 
     def test_main_prints_formatted_errors_for_bad_commands(self):
         with mock.patch.object(sys, "argv", ["dice", "1", "+"]):

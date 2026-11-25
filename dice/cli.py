@@ -71,8 +71,24 @@ def _deterministic_outcome(distrib):
     return next(iter(distrib.keys()))
 
 
+# Sweep cells are usually Distributions, but an untyped Python helper runs once
+# per cell and returns whatever Python computes, so a cell can also be a plain
+# number or string (e.g. `add_two([1..3])`). Those count as scalar cells. This
+# mirrors `_is_scalar_cell` in dice-web's webbridge.py.
+def _is_scalar_cell(cell):
+    if isinstance(cell, Distribution):
+        return _is_deterministic_distribution(cell)
+    return _is_numeric(cell) or isinstance(cell, str)
+
+
+def _scalar_cell_value(cell):
+    if isinstance(cell, Distribution):
+        return _deterministic_outcome(cell)
+    return cell
+
+
 def _all_scalar(result):
-    return all(_is_deterministic_distribution(distrib) for distrib in result.cells.values())
+    return all(_is_scalar_cell(cell) for cell in result.cells.values())
 
 
 def _ordered_labels(values):
@@ -179,7 +195,7 @@ def _format_scalar_sweep(result, roundlevel=0):
             [
                 (
                     _format_label(value, roundlevel),
-                    _format_scalar(_deterministic_outcome(result.cells[(value,)]), roundlevel),
+                    _format_scalar(_scalar_cell_value(result.cells[(value,)]), roundlevel),
                 )
                 for value in axis.values
             ]
@@ -225,7 +241,7 @@ def _format_scalar_heatmap(result, roundlevel=0):
     for row_value in row_axis.values:
         row = [_format_label(row_value, roundlevel)]
         for col_value in col_axis.values:
-            scalar = _deterministic_outcome(result.cells[(row_value, col_value)])
+            scalar = _scalar_cell_value(result.cells[(row_value, col_value)])
             row.append(_format_scalar(scalar, roundlevel))
         rows.append(row)
     return _string_table(rows)
