@@ -1,7 +1,7 @@
 # dice
 
 `dice` is a language for tabletop dice and probability calculations that keeps common RPG math readable while extending effortlessly to parameter studies and report generation. Dice is easily user extensible through Python. 
-You can test dice in a [web demo](https://felixmueh.github.io/dice-web/) but please note that the local version is more mature and better tested.
+You can try dice in the [web demo](https://felixmueh.github.io/dice-web/), which runs all bundled examples in the browser. The local version adds the CLI, your own files on disk and the Python API.
 
 [Web version](https://felixmueh.github.io/dice-web/) · [Installation](#installation) · [Usage](#usage) · [Language manual / API docs](manual/index.md) · [Examples](examples/README.md) · [Python extension](#python-extension)
 
@@ -251,9 +251,16 @@ Major features:
 
 For the full language reference, see the [language manual](manual/index.md). For more worked examples, see [examples/README.md](examples/README.md).
 
+## Known Limitations
+
+- Two sweeps with the same name do not share an axis yet. `[A:1..2] + [A:1..2]` gives a 2 by 2 table instead of one axis.
+- Untyped Python helpers cannot take a plain distribution yet. `add_two(d6)` fails, while `add_two([1..3])` works. Typed parameters (see [Python integration](manual/reference/python-integration.md)) can receive whole distributions.
+- Records have no field access or comparison yet.
+- The report renderer works, but its styling is basic.
+
 ## Installation
 
-The local version is currently the most complete way to use `dice`.
+Install `dice` locally to use the CLI, your own files and the Python API.
 
 ```bash
 git clone https://github.com/felixmueh/dice.git
