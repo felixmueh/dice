@@ -1,90 +1,36 @@
 # AGENTS
 
-## Project Snapshot
+## Project Overview
 
-`dice` is a Python dice-probability language for tabletop RPG calculations. The durable core is the language pipeline:
+`dice` is a Python language for exact and sampled tabletop probability calculations. The active runtime is the parser/interpreter/engine stack plus the CLI in `dice.py`, with user-facing semantics documented in `README.md`, `manual/`, and `examples/`.
 
-`lexer.py` -> `diceparser.py` -> `syntaxtree.py` -> `interpreter.py` -> `diceengine.py`
+## Where To Look
 
-Secondary surfaces:
+- `README.md`: shortest user-facing quickstart and tested core semantics
+- `manual/`: canonical long-form user-facing manual and MkDocs source
+- `examples/`: user-facing sample programs, including D&D and Python-extension examples
+- `agent-notes/README.md`: internal map of architecture, design notes, research, and backlog
+- `lexer.py` -> `diceparser.py` -> `syntaxtree.py` -> `interpreter.py` -> `diceengine.py`: core language pipeline
+- `executor.py`: builtin registration and executor surface shared by dice and Python
+- `viewer.py`, `renderplan.py`, `jsonrenderer.py`, `resultjson.py`: report planning and rendering
+- `tests/`: executable contract, especially `tests/test_readme_examples.py` and `tests/test_manual_examples.py`
 
-- `dice.py`: CLI entry point
-- `directdiceengine.py`: sampling-based reference backend and validation helpers
-- `viewer.py`: Matplotlib plotting helper
-- `README.md`: brief user-facing GitHub quickstart
-- `manual/`: canonical user-facing language manual and MkDocs source
-- `examples/`: user-facing example programs
-- `notes.org`: legacy design notes
+## Important Rules
 
-## Repository Structure
-
-- Top-level runtime modules: `dice.py`, `directdiceengine.py`, `lexer.py`, `diceparser.py`, `interpreter.py`, `diceengine.py`, `syntaxtree.py`, `viewer.py`
-- User-facing docs: `README.md`, `manual/`, `mkdocs.yml`
-- Examples and sample programs: `examples/`, `test.dice`, `scripts/*.txt`, `scripts/*.org`
-- Agent-facing docs: `docs/`
-- Tests: `tests/`
-- Historical design notes: `notes.org`
-- Images for old notes/docs: `images/`
-
-## Current State
-
-The active runtime is now the parser/interpreter/engine stack plus the CLI in `dice.py`.
-
-- Programs are parsed as EOF-delimited statement sequences rather than `BEGIN ... END` wrappers.
-- The legacy preprocessor and Discord bot have been removed from the active surface.
-- Minimal first-class comments and file imports now belong to the active language surface: `# ...` and `import "path.dice"`.
-- `README.md` examples are part of the executable contract through the test suite.
-- `manual/` examples are also part of the executable contract through the test suite.
-- The current ongoing task is the semantic rewrite described in `DICE_REWRITE_PLAN.md`.
-- The language is explicitly still in development; undocumented breaking syntax/runtime changes are allowed without compatibility warnings while the rewrite is in flight.
-
-## Where To Read Next
-
-- `README.md`: current user-facing language semantics and executable examples
-- `manual/`: canonical long-form user-facing language manual
-- `DICE_REWRITE_PLAN.md`: active rewrite target for unifying distributions and sweeps
-- `docs/README.md`: documentation map
-- `docs/architecture.md`: module responsibilities and execution flow
-- `docs/language-runtime.md`: language model, data types, and sample program surfaces
-- `docs/rewrite-status.md`: verified rewrite seams and practical cautions
-
-## Working Notes For Agents
-
-- Note observations and pain-point that you observe while working with dice in `LANGUAGE_OBSERVATIONS_AND_PAINPOINTS.md`.
-- Keep `README.md` brief during development. Its main job is to be the current user-facing reference for tested language semantics.
-- Keep `manual/` as the canonical long-form user-facing manual. It is also the source for the MkDocs site defined in `mkdocs.yml`.
-- Treat `DICE_REWRITE_PLAN.md` as the active design brief for ongoing semantic changes.
-- During this rewrite, every semantic feature change should come with sensible end-to-end tests where practical.
-- Add source-level comments when non-obvious design decisions matter, or when code is complicated enough to benefit from a brief explanation. Keep these comments short and focused on intent or invariants, not line-by-line narration.
-- Do not recreate parallel user docs like the removed `documentation.org` / `documentation.html` unless the user explicitly asks for them.
+- Treat `README.md`, `manual/`, `examples/`, and the tests as the current contract.
 - For syntax changes, update `lexer.py`, `diceparser.py`, and `interpreter.py` together.
-- When adding standard-library builtins, define them in `diceengine.py` and register them through `executor.py` so dice and Python use the same callable surface.
-- For import behavior, keep resolution relative to the importing file and prefer explicit runtime syntax over hidden preprocessing.
-- For semantic changes, check `diceengine.py` first; most exact operator and callable behavior lives there.
-- Multiline functions are part of the active language surface; prefer them over dense one-line functions when samples or stdlib helpers need local bindings, repeated subexpressions, or multi-step logic.
-- The old macro/preprocessor layer is historical only. If you need that behavior again, redesign it intentionally instead of assuming it still exists.
-- Prefer `README.md` and `examples/` for current tested examples and `scripts/` / `notes.org` for older intent or design history.
-- `dnd-sources/` is local convenience/reference material for development only. Do not treat it as repository content to quote, mirror, import into user-facing docs, or mention from the library/tests/examples unless the user explicitly asks for that provenance.
-- Use `==` for singleton exact checks such as `d20 == 20`.
-- Use ordinary comparisons for contiguous threshold-style events such as `d20 >= 15`.
-- Use `in` only for genuine non-contiguous or structured membership queries such as `d20 in {1, 20}`.
-- Benchmark work is split into `fast/`, `end_to_end/`, `slow/`, `exploratory/`, and `monte_carlo_comparison/` under `benchmarks/`.
-- Commit-time benchmark runs are driven by the pre-commit hook from the staged tree. A normal `git commit` runs `fast/` and `end_to_end/` and writes tracked results marked `during-commit`.
-- Use `BENCHMARK_REFRESH=1 git commit` when you intentionally want to refresh the tracked `fast/` and `end_to_end/` baselines during the commit. This still runs those suites and writes tracked results, but it skips failing the commit on benchmark regressions.
-- To also run the slower suites during commit, use environment flags such as `BENCHMARK_SLOW=1 git commit` and `BENCHMARK_SLOW=1 BENCHMARK_MONTE_CARLO=1 git commit`.
-- The refresh mode composes with the slower suites, for example `BENCHMARK_REFRESH=1 BENCHMARK_SLOW=1 BENCHMARK_MONTE_CARLO=1 git commit`.
-- When working on performance-sensitive changes, run the full benchmark suite before finishing the change. In practice this means the default commit-time suites plus `slow/` and the Monte Carlo comparisons.
+- For semantic changes, check `diceengine.py` first. Most exact operator and callable behavior lives there.
+- When adding builtins, define the behavior in `diceengine.py` and register it through `executor.py` so dice and Python share one callable surface.
+- Keep imports explicit and runtime-visible. Resolve relative imports from the importing file; do not reintroduce hidden preprocessing behavior by accident.
+- Keep fenced `dice` examples in `README.md` and `manual/` executable, or update the runtime and tests in the same change.
+- Add end-to-end tests for semantic changes where practical.
 
-## Tests
+## Secondary Rules
 
-- Test framework: `unittest` with tests under `tests/`.
-- First-line syntax coverage lives in `tests/test_readme_examples.py`, which extracts fenced `dice` blocks from `README.md` and executes them through `dice.py`.
-- Manual example coverage lives in `tests/test_manual_examples.py`, which executes fenced examples from `manual/`.
-- Runtime regressions live in `tests/test_runtime.py`.
-- Focused math regression checks live in `tests/test_math_correctness.py`.
-- Direct-backend smoke coverage lives in `tests/test_direct_engine.py`.
-- Slow Monte Carlo validation lives in `tests/test_stochastic_validation.py` and does not need to be run constantly; use it after major semantic changes are completed.
-- When adding language examples to `README.md`, keep them executable by the current runtime or update the runtime and tests in the same change.
-- When adding examples to `manual/`, keep them executable by the current runtime or update the runtime and tests in the same change.
-- Run tests with `python3 -m unittest discover -s tests -v`.
-- Run optional stochastic validation with `RUN_STOCHASTIC_VALIDATION=1 python3 -m unittest tests.test_stochastic_validation -v`.
+- Prefer pointing agents to user-facing docs instead of duplicating semantics in `agent-notes/`. Keep internal notes shorter unless extra implementation detail is genuinely useful.
+- Multiline functions are part of the active language surface; prefer them over dense one-line helpers when examples need local bindings or repeated subexpressions.
+- Use `==` for singleton exact checks such as `d20 == 20`, ordinary comparisons for thresholds such as `d20 >= 15`, and `in` for genuine membership checks such as `d20 in {1, 20}`.
+- `notes.org` and `scripts/` are useful for history and intent, but they are not guaranteed to match the active runtime.
+- `dnd-sources/` is local development/reference material only. Do not quote or surface it in user-facing docs, tests, or examples unless explicitly asked.
+- Record agent observations in `agent-notes/backlog/language-observations-and-painpoints.md`.
+- For performance-sensitive work, consult `benchmarks/README.md` and the notes under `agent-notes/design/`. Normal `git commit` already runs the staged-tree `fast/` and `end_to_end/` suites via `.githooks/pre-commit`.

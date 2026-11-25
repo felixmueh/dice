@@ -330,14 +330,50 @@ def _plot_scalar_heatmap(ax, result, render_config):
 
 
 def _draw_series_labels(ax, positions, series_data):
+    if not positions or not series_data:
+        return
+    label_x = positions[-1]
+    display_labels = []
+    min_gap_px = ax.figure.dpi * 10 / 72.0
+    edge_padding_px = ax.figure.dpi * 4 / 72.0
     for color, label, values in series_data:
-        ax.text(
-            positions[-1] + 0.15 if positions else 0,
-            values[-1],
-            label,
-            color=color,
+        _, y_display = ax.transData.transform((label_x, values[-1]))
+        display_labels.append(
+            {
+                "color": color,
+                "label": label,
+                "value": values[-1],
+                "target_y": y_display,
+            }
+        )
+    display_labels.sort(key=lambda item: item["target_y"])
+    axes_bottom = ax.bbox.y0 + edge_padding_px
+    axes_top = ax.bbox.y1 - edge_padding_px
+    adjusted_ys = []
+    for item in display_labels:
+        if adjusted_ys:
+            adjusted_ys.append(max(item["target_y"], adjusted_ys[-1] + min_gap_px))
+        else:
+            adjusted_ys.append(max(item["target_y"], axes_bottom))
+    if adjusted_ys[-1] > axes_top:
+        adjusted_ys[-1] = axes_top
+        for index in range(len(adjusted_ys) - 2, -1, -1):
+            adjusted_ys[index] = min(adjusted_ys[index], adjusted_ys[index + 1] - min_gap_px)
+        if adjusted_ys[0] < axes_bottom:
+            adjusted_ys[0] = axes_bottom
+            for index in range(1, len(adjusted_ys)):
+                adjusted_ys[index] = max(adjusted_ys[index], adjusted_ys[index - 1] + min_gap_px)
+    for item, adjusted_y in zip(display_labels, adjusted_ys):
+        y_offset_points = (adjusted_y - item["target_y"]) * 72.0 / ax.figure.dpi
+        ax.annotate(
+            item["label"],
+            xy=(label_x, item["value"]),
+            xytext=(6, y_offset_points),
+            textcoords="offset points",
+            color=item["color"],
             fontsize=9,
             va="center",
+            clip_on=False,
         )
 
 

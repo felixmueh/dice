@@ -240,6 +240,29 @@ class FigureStructureTest(unittest.TestCase):
         finally:
             viewer.plt.close(figure)
 
+    def test_compare_scalar_separates_colliding_endpoint_labels(self):
+        plan = viewer.build_chart_plan(
+            ExactExecutor().r_compare(
+                interpret_statement('("A", ~([AC:10..12] * 0 + 1))'),
+                interpret_statement('("B", ~([AC:10..12] * 0 + 1))'),
+                interpret_statement('("C", ~([AC:10..12] * 0 + 1))'),
+                x="AC",
+            )
+        )
+        figure, ax = viewer.plt.subplots()
+        try:
+            viewer.render_chart_on_axes(figure, ax, plan, RenderConfig())
+            figure.canvas.draw()
+            self.assertIsNone(ax.get_legend())
+            labels = [text for text in ax.texts if text.get_text() in {"A", "B", "C"}]
+            self.assertEqual(len(labels), 3)
+            renderer = figure.canvas.get_renderer()
+            label_boxes = sorted(text.get_window_extent(renderer).y0 for text in labels)
+            gaps = [right - left for left, right in zip(label_boxes, label_boxes[1:])]
+            self.assertTrue(all(gap > 2 for gap in gaps))
+        finally:
+            viewer.plt.close(figure)
+
     def test_distribution_sweep_adds_colorbar(self):
         plan = viewer.build_chart_plan(ChartSpec("auto", interpret_statement("d20 >= [AC:10..12]")))
         figure, ax = viewer.plt.subplots()

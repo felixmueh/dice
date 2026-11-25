@@ -1,470 +1,317 @@
 # dice
 
-`dice` is a small language for tabletop dice and probability calculations.
+`dice` is a language for tabletop dice and probability calculations that keeps common RPG math readable while extending effortlessly to parameter studies and report generation. Dice is easily user extensible through Python. 
+You can test dice in a [web demo](https://felixmueh.github.io/dice-web/) but please note that the local version is more mature and better tested.
 
-This README is intentionally brief during the rewrite. For now, treat it as the user-facing reference for the currently tested language semantics.
+[Web version](https://felixmueh.github.io/dice-web/) · [Installation](#installation) · [Usage](#usage) · [Language manual / API docs](manual/index.md) · [Examples](examples/README.md) · [Python extension](#python-extension)
 
-The canonical long-form language manual now lives under [manual/](/home/felix/_Documents/Projects/dice/manual/index.md). `README.md` stays as the shortest GitHub-facing entry point, while `manual/` is the source for the MkDocs documentation site.
+`dice` is inspired by [AnyDice](https://anydice.com/) and Troll. Troll is also used in this repository for parity testing.
 
-## Performance
+## Start Here
 
-- For many additive tabletop probability problems, `dice` is a lot more accurate and much faster than naive Monte Carlo.
-- For many of those same cases, `dice` is in the same ballpark as a more optimized Monte Carlo implementation while being much easier to write.
-- This is not true in every case: branch-heavy workloads such as Chaos Bolt are the worst-case scenario for exact evaluation and are still much friendlier to Monte Carlo than to exact evaluation.
-
-For the representative `hexed_scorching_ray` cell `slot=2, mode=normal, atk=7, bless=0, ac=13`, the exact PMF and the vectorized Monte Carlo overlays look like this:
-
-![Exact vs NumPy Monte Carlo PMF](docs/images/readme_benchmark_pmf.png)
-
-Current benchmark numbers:
-
-| Benchmark | Backend | Samples / cell | Scope | Time (s) | vs dice | Representative mean abs. error |
-| --- | --- | --- | --- | --- | --- | --- |
-| Hexed Scorching Ray | dice exact | - | full sweep (1,260 cells) | 0.500 | 1.00x | 0.0000 |
-| Hexed Scorching Ray | naive Python Monte Carlo | 4,000 | full sweep (1,260 cells) | 32.885 | 65.81x | 0.2184 |
-| Hexed Scorching Ray | vectorized NumPy Monte Carlo | 4,000 | full sweep (1,260 cells) | 0.353 | 0.71x | 0.2923 |
-| Hexed Scorching Ray | vectorized NumPy Monte Carlo | 32,000 | full sweep (1,260 cells) | 0.662 | 1.32x | 0.0861 |
-| Chaos Bolt Chain (`xlarge` preset, worst case) | dice exact | - | full sweep (6,144 cells) | 42.685 | 1.00x | 0.0000 |
-| Chaos Bolt Chain (`xlarge` preset, worst case) | naive Python Monte Carlo | 4,000 | full sweep (6,144 cells) | 49.066 | 1.15x | 0.1830 |
-| Chaos Bolt Chain (`xlarge` preset, worst case) | vectorized NumPy Monte Carlo | 4,000 | full sweep (6,144 cells) | 1.629 | 0.04x | 0.2586 |
-| Chaos Bolt Chain (`xlarge` preset, worst case) | vectorized NumPy Monte Carlo | 32,000 | full sweep (6,144 cells) | 2.940 | 0.07x | 0.0688 |
-
-These numbers are produced by the exploratory runners under [benchmarks/](/home/felix/_Documents/Projects/dice/benchmarks/README.md). The Scorching Ray sweep is the clearest example of the headline claim above. The Chaos Bolt row is intentionally a worst-case branch-heavy stress test: even after the recent exact-engine work, this is still the kind of workload where Monte Carlo has the structural advantage.
-
-## Values
-
-- `FiniteMeasure`: a finite weighted support value such as `{10, 15}` or `{"fire" @ 2, "ice"}`
-- `Distribution`: a normalized probability distribution such as `d20` or `d{10, 15}`
-- `SweepValues`: a finite set of input values used to build bracket sweeps such as `[AC:10..20]`
-- `Sweep[T]`: zero or more sweep axes whose cells hold values such as `Distribution` or `FiniteMeasure`
-- `tuple`: an immutable structured value such as `()` or `(1, "fire")`
-- `record`: an immutable keyed structured value such as `(PLAN: "gwm", LEVEL: 11)`
-- numeric Bernoulli outcomes such as `0` and `1`
-
-## Semantics
-
-- `d20` rolls one die and returns a probability distribution.
-- `2d6` rolls multiple dice and sums them.
-- `{a, b, c}` creates a finite weighted measure with unit weights by default.
-- `{value @ weight, ...}` creates a weighted measure with explicit relative weights.
-- `d{...}` normalizes a finite measure into a distribution.
-- `>=`, `<=`, `<`, `>`, `==` return Bernoulli distributions over `1` and `0`.
-- `in` checks support membership against a finite measure or domain.
-- `->` applies the `1` branch of a Bernoulli distribution to another distribution.
-- `|` adds an else-branch to `->`.
-- `@` inside the else-branch names the already-evaluated `->` value.
-- leading operators inside the else-branch are relative to that `@`, so `| / 2` means `| @ / 2`.
-- `[a..b]` creates an unnamed sweep over an inclusive integer range.
-- `[a..<b]` creates an unnamed sweep whose upper bound is excluded.
-- `[a, b, c]` creates an unnamed sweep over explicit values.
-- `[name:a..b]` creates a named sweep over an inclusive integer range.
-- `[name:a..<b]` creates a named sweep whose upper bound is excluded.
-- `[name:a, b, c]` creates a named sweep over explicit values.
-- `()` creates an empty tuple.
-- `(a,)` creates a one-element tuple.
-- `(a, b, c)` creates a tuple.
-- `(KEY: value, ...)` creates a record when each `KEY` is an identifier or integer.
-- `f(x): expr` defines a top-level one-line function.
-- `f(x):` followed by an indented body defines a multiline function with local assignments and one final expression line.
-- `f(a, b=1)` defines defaults, and `f(b=2, a=1)` calls by keyword.
-- Function defaults are evaluated against dice globals only.
-- `f(a, b)` calls a user-defined function inside an expression.
-- `split expr | guard -> expr | ...` binds one shared outcome of `expr`, checks clauses top-to-bottom, and sends only the still-unmatched cases to later clauses.
-- `expr ^ n` evaluates `expr` independently `n` times and adds the results.
-- `repeat_sum(n, expr)` evaluates `expr` independently `n` times and adds the results.
-  `repeat_sum(n, expr)` remains supported as an explicit alias for `expr ^ n`.
-- `expr[...]` indexes an existing sweep using coordinate entries such as `PLAN: 11`, filters such as `AC in {12, 16}`, and axis specs such as `"AC"`, `0`, or `("AC", "PLAN")`.
-- `sumover(expr, axes?)`, `meanover(expr, axes?)`, `maxover(expr, axes?)`, and `argmaxover(expr, axes?)` reduce sweep axes without changing the meaning of plain distribution helpers such as `mean(expr)`.
-- reducer `axes` may be omitted to reduce across all sweep axes, or passed as one axis ref or a tuple such as `"PLAN"`, `0`, or `("PLAN", "LEVEL")`.
-- `argmaxover(...)` returns coordinate records such as `(PLAN: "gwm")` or `(PLAN: "gwm", LEVEL: 11)`, and those records can be fed back into `expr[...]`.
-- `total(expr)` is shorthand for `sumover(...)` when `expr` has exactly one named sweep axis.
-- `r_auto(expr, x="...", y="...")`, `r_dist(expr, x="...", y="...")`, `r_cdf(expr, x="...", y="...")`, and `r_surv(expr, x="...", y="...")` build chart specs.
-- `r_compare(("Label", expr), ...)`, `r_diff(("A", expr), ("B", expr), ...)`, and `r_best(expr, ...)` build comparison and strategy chart specs.
-- `r_title("...")`, `r_note("...")`, `r_hero(spec)`, and `r_row(spec1, spec2)` build the pending report.
-- `render(path=..., format="png", dpi=...)` flushes the pending report to output and resets report state.
-- `expr $ f` passes `expr` as the first argument to `f`.
-- `expr $ f(a, b)` passes `expr` as the first argument to `f(expr, a, b)`.
-- `import "path/to/file"` loads another dice file once. Relative paths resolve from the importing file, absolute paths resolve from the filesystem root, and `std:...` resolves from dice's packaged standard library. When the target is a `.dice` file, the extension is optional.
-- `+`, `-`, `*`, `/`, and `//` combine numeric distributions.
-- `d+20` and `d-20` mean advantage and disadvantage.
-- `3d20h1` and `3d20l1` mean roll many dice and keep the highest or lowest subset.
-- `!expr` samples one outcome and returns it as a degenerate distribution.
-- `~expr` returns expectation as a degenerate distribution.
-- `mean(expr)` and `sample(expr)` are explicit summary helpers.
-- `var(expr)` and `std(expr)` return variance and standard deviation as degenerate distributions.
-- `cum(expr)` returns the cumulative form of a numeric distribution using `P(X <= x)` at each outcome.
-- `surv(expr)` returns the survival form of a numeric distribution using `P(X > x)` at each outcome.
-- `type(expr)` returns the outer runtime shape as a string such as `Sweep[Distribution]`.
-- `shape(expr)` returns the sweep axes as a string such as `[AC: (10, 11, 12)]`.
-- operator-backed semantics are also available as functions such as `add(...)`, `roll(...)`, `greaterorequal(...)`, and `reselse(...)`.
-- `( ... )` groups expressions.
-- tuple and record comparison operators are not supported yet.
-- tuple and record field access is not supported yet.
-- explicit keep-lists inside `expr[...]` can currently reorder the remaining axes, but they cannot drop still-unfixed axes yet.
-- when positional axis refs are used in reducers or `expr[...]`, they refer to the current visible axis order at that point in the expression.
-
-## Running Dice
-
-The CLI has three modes:
-
-- REPL: `python3 dice.py --interactive`
-- Direct one-off evaluation: `python3 dice.py "d20 >= 11 -> 5"`
-- Run a dice program from a file: `python3 dice.py --file path/to/program.dice`
-
-The `--file` mode parses a dice program, not Markdown or plain notes. Multi-line programs are separated by newlines or `;`.
-Use `import "relative/path"` inside files when you want to share helpers across programs. Use `import "/absolute/path/to/file"` for explicit filesystem imports and `import "std:dnd/weapons"` for packaged helpers.
-
-Useful flags:
-
-- `-R N` or `--round N` rounds displayed numeric output. The CLI defaults to `-R 2`.
-- Probabilities in default text output are shown as percentages.
-- Rounded values that land exactly on an integer display without trailing decimal zeros.
-- `--json` prints structured JSON objects for tool-facing integrations.
-- `-v` prints the input together with the result
-
-The interactive shell also supports a few lightweight host commands before parsing dice source:
-
-- `$ set_round N` changes the REPL display rounding for later commands
-- `$ set_render_mode MODE` sets render behavior for later plots. Use `blocking`, `nonblocking`, or `deferred`.
-- `$ set_probability_mode MODE` sets probability display style for later output. Use `percent` or `raw`.
-- `Ctrl-P` / `Ctrl-N` navigate command history on terminals with `readline` support
-- `Tab` completes visible identifiers, function names, and import paths on terminals with `readline` support
-- command history is persisted between sessions when the local state directory is writable
-
-## Output Modes
-
-There are two main CLI output modes:
-
-- default text mode for humans
-- `--json` for tools and scripts
-
-Default text mode prettifies common result shapes:
-
-- deterministic distributions collapse to one displayed value
-- unswept distributions print as `value: probability` lines
-- one-axis scalar sweeps print one value per line with the axis name shown at most once
-- one-axis full distributions print as tables with outcomes on rows and sweep values on columns
-- two-axis scalar sweeps print as tables with a compact corner label such as `AC/BONUS`
-- unnamed axes stay blank in table headers instead of using fallback labels
-- text-mode probabilities default to percentages; JSON probabilities default to raw probability mass
-
-Examples:
-
-```text
-  0: 50%
-  1: 50%
-(E): 0.50
-```
-
-```text
-/AC
-10: 2.75
-11: 2.50
-12: 2.25
-```
-
-```text
-/AC    10    11    12
-  0   45%   50%   55%
-  1   55%   50%   45%
-(E)  0.55  0.50  0.45
-```
-
-```text
-AC/BONUS   1   2
-      10  11  12
-      11  12  13
-```
-
-Use the `r_*` helpers plus `render(...)` in a program when you want graphs instead of text output.
-CLI script execution uses deferred rendering by default: each `render(...)` call flushes one pending report, then `dice.py --file ...` waits for all open figures to close before exiting.
-
-Example rendering program:
-
-```bash
-python3 dice.py --file path/to/plot.dice
-```
-
-```text
-r_title("Hit chance"); r_auto((d20 >= [AC:10..20] -> 5 | 0) $ mean, x="AC"); render()
-```
-
-## Functions
-
-User-defined functions use Python-like `:` headers.
-
-- Parameters shadow globals.
-- One-line definitions use `name(args): expr`.
-- Multiline definitions use indentation, local assignments, and one final expression line.
-- Function-local assignments never mutate globals.
-- Rebinding a local name is allowed inside the function body.
-- A local assignment that shadows a global emits a warning.
-- Parameters may have defaults, and calls may use keyword arguments.
-- Default expressions are evaluated against globals only.
-- Functions may call other functions.
-- Forward references work across a program.
-- Recursion is not supported.
-
-Examples:
-
-```text
-hit(ac): d20 >= ac
-damage(ac): hit(ac) -> 5 | 0
-crit(ac, dmg): d20 == 20 -> dmg | 0
-paladin_smite(ac, bonus=8):
-    hit_damage = 1 d 8 + 4
-    attack_damage(ac, bonus, hit_damage, 2 d 8 + 4)
-split d20 | == 20 -> 10 | + 5 >= 15 -> 5 ||
-d6 ^ 3
-(d6 + 1) ^ 3
-d2 ^ 3
-sumover([party:1, 2, 3], "party")
-meanover(d2 + [bonus:0, 1], "bonus")
-([PLAN:1, 2] + [AC:10, 11])["AC", "PLAN"]
-total([party:1, 2, 3])
-r_title("Hit chance"); r_auto((d20 >= [AC:10..20] -> 5 | 0) $ mean, x="AC"); render()
-```
-
-## Split
-
-Use `split` when you want to roll once and make several decisions from that same roll.
-
-Straightforward:
-
-- `split expr as name` means “take one outcome from `expr` and call it `name`”.
-- `split expr` binds the shared outcome to `@`.
-- Clauses are checked from top to bottom.
-- Later clauses only see cases that earlier clauses did not already take.
-- `otherwise -> ...` catches whatever is left.
-- `||` means “otherwise, return `0`”.
-
-Example:
-
-`split d20 | == 20 -> 10 | + 5 >= 15 -> 5 ||`
-
-This is easiest to read as:
-
-- if the roll is `20`, return `10`
-- otherwise, if the roll is `10` through `19`, return `5`
-- otherwise, return `0`
-
-So the second clause is effectively “`@ + 5 >= 15`, but only for rolls that were not already matched by `@ == 20`”.
-
-Exact:
-
-- Evaluate `expr` once as a distribution and bind each possible outcome to `name`.
-- For each bound outcome, evaluate the clauses in order.
-- Each guard must be a Bernoulli result with outcomes only in `0` and `1`.
-- A guarded clause takes the probability mass where its guard is `1`.
-- The remaining probability mass, where the guard is `0`, continues to the next clause.
-- `otherwise -> ...` takes all remaining mass.
-- If the final fallback is omitted, `split` defaults the remaining mass to `0` and emits a warning.
-
-## Whitespace
-
-Compact dice forms still work for literal-style expressions:
-
-- `d20`
-- `2d6`
-- `3d20h1`
-- `3d20l1`
-
-When identifiers are involved, write dice operators with spaces so they remain separate tokens:
-
-- `count d sides`
-- `d sides`
-- `count d sides h keep`
-- `count d sides l keep`
-
-Compact names like `adb` or `ad20` stay ordinary identifiers. Strings also preserve internal spaces now, for example `"fire bolt"`.
-
-## Creating Reports
-
-The report surface is stateful.
-
-- `r_*` chart helpers build chart specs.
-- bare top-level chart specs append themselves to the current pending report in source order.
-- layout helpers such as `r_title(...)` and `r_row(...)` mutate that pending report.
-- `render(...)` flushes the current report to output and then resets report state.
-
-This means one dice file can create multiple separate report images by calling `render(...)` more than once.
-
-### Chart builders
-
-- `r_auto(expr, x="...", y="...", title="...")` chooses a chart from the result shape.
-- `r_dist(expr, x="...", y="...", title="...")` forces an exact distribution / PMF view.
-- `r_cdf(expr, x="...", y="...", title="...")` forces a cumulative view.
-- `r_surv(expr, x="...", y="...", title="...")` forces a survival view using `P(X > x)`.
-- `r_compare(("Label", expr1), ("Other", expr2), x="...", y="...", title="...")` compares multiple labeled expressions.
-- `r_diff(("A", expr1), ("B", expr2), x="...", y="...", title="...")` plots a two-series delta.
-- `r_best(expr, title="...")` renders a winner map plus winner margin for suitable two-axis scalar sweeps.
-
-### Report layout
-
-- `r_title("...")` sets the report title. Only one title is allowed per report.
-- `r_note("...")` appends note text at the bottom of the report.
-- `r_hero(spec)` places one chart in the hero slot. Only one hero chart is allowed per report.
-- `r_row(spec1, spec2)` places one explicit row with one or two charts.
-- `r_wide(spec)` and `r_narrow(spec)` override the automatic width choice for auto-appended charts.
-
-If you do not use `r_row(...)`, auto-appended charts are packed automatically:
-
-- narrow charts are packed two-up
-- wide charts take a full row
-
-Axis labels usually come from named sweeps such as `[AC:10..20]`, but you can override them with `x="..."` and `y="..."`.
-
-### Output and render settings
-
-- `render(path=..., format="png", dpi=...)` writes the pending report immediately and resets report state.
-- `path` is optional. Without it, dice writes to a temporary PNG path in headless mode.
-- `format` currently expects PNG output.
-- `dpi` controls raster export density.
-- `set_render_mode("blocking")`, `set_render_mode("nonblocking")`, and `set_render_mode("deferred")` control how figures are shown.
-- `set_render_autoflush("on")` and `set_render_autoflush("off")` control whether pending charts auto-render at the end of a top-level program. The default is `on`.
-- `set_render_omit_dominant_zero("on")` and `set_render_omit_dominant_zero("off")` control whether unswept numeric plots can hide a dominant zero bar. The default is `on`.
-- `set_probability_mode("percent")` and `set_probability_mode("raw")` control probability-axis formatting.
-
-Current quick-render planning covers:
-
-- unswept distributions
-- one-axis scalar sweeps
-- one-axis distribution sweeps
-- two-axis scalar heatmaps
-- labeled scalar/distribution comparisons
-- strategy winner/margin reports from suitable two-axis scalar sweeps
-
-### Examples
-
-Single-chart report:
+These are some of the calculations `dice` is built to make easy:
 
 ```dice
-r_title("d20"); r_auto(d20, x="Outcome"); render()
+# mean ability score: 12.24
+4d6h3 $ mean
+# fireball damage
+d20 + 2 >= 15 -> 8d6 // 2 | 8d6
+# attack with crit
+split d20 | == 20 -> 2 d 8 + 4 | + 7 >= 16 -> 1 d 8 + 4 ||
+# fireball damage over spell save DC
+d20 + 2 >= [DC:10..15] -> 8d6 // 2 | 8d6 $ mean
 ```
 
-Comparison report with a hero chart and a full-width delta chart:
+Rendered as three side-by-side views:
+
+<table>
+  <tr>
+    <td><img src="resources/images/readme_fireball_distribution.png" alt="Fireball damage distribution" width="100%"></td>
+    <td><img src="resources/images/readme_attack_with_crit.png" alt="Attack with crit damage distribution" width="100%"></td>
+    <td><img src="resources/images/readme_fireball_by_dc.png" alt="Fireball expected damage over spell save DC" width="100%"></td>
+  </tr>
+  <tr>
+    <td align="center">Fireball damage distribution</td>
+    <td align="center">Attack with crit</td>
+    <td align="center">Fireball over spell save DC</td>
+  </tr>
+</table>
+
+Dice can also be used to generate reports and re-usable function libraries. See [Examples](examples/README.md) for more examples.
 
 ```dice
-r_title("Hit chance"); r_hero(r_compare(("Normal", ~(d20 >= [AC:10..18])), ("Boosted", ~(d20 + 1 >= [AC:10..18])), x="Armor class", y="Hit chance")); r_wide(r_diff(("Boosted", ~(d20 + 1 >= [AC:10..18])), ("Normal", ~(d20 >= [AC:10..18])), x="Armor class", y="Extra hit chance")); render()
+import "std:dnd/core"
+
+maintain_once(con_bonus):
+    save_success(10, con_bonus) $ mean
+
+maintain_per_dart(darts, con_bonus):
+    (((save_success(10, con_bonus)) ^ darts) == darts) $ mean
+
+one_check = 1 - maintain_once([CON:0..9])
+three_darts = 1 - maintain_per_dart(3, [CON:0..9])
+five_darts = 1 - maintain_per_dart(5, [CON:0..9])
+
+r_title("Magic Missile breaks concentration")
+r_hero(r_compare(("One damage instance", one_check), ("Three darts", three_darts), ("Five darts", five_darts), x="Con save bonus", y="Failure chance", title="Concentration failure by save bonus"))
+r_row(r_auto(five_darts - one_check, x="Con save bonus", y="Extra failure chance", title="Why repeated checks matter"))
+render()
 ```
 
-Explicit row layout with two distribution panels:
+![Magic Missile concentration report](resources/images/readme_magic_missile_concentration.png)
+
+
+## Stage 1: Minimal TTRPG calculations
+
+Common TTRPG calculations:
 
 ```dice
-r_title("Distributions"); r_row(r_dist(d20, x="Outcome", title="d20"), r_cdf(d20, x="Outcome", title="CDF")); render()
+d20 >= 15
+d20 >= 15 -> 8 | 0
+4d6h3
+import "std:dnd/core"; save_half(15, 2, 8 d 6)
+import "std:dnd/weapons"; longsword_attack(16, 7, 4)
 ```
 
-Two separate reports in one program:
+These examples cover:
+
+- success chance
+- damage on success or failure
+- classic character-generation rolls
+- saving throw damage
+- imported combat helpers
+
+The same expressions also work across many inputs:
 
 ```dice
-r_title("First"); r_auto(d20); render(); r_title("Second"); r_auto(d6); render()
+(d20 + 7 >= [AC:10..20] -> 8 | 0) $ mean
+attack_damage(ac, bless=0): (d20 + (bless -> d4 | 0) + 7 >= ac -> 8 | 0) $ mean; attack_damage([AC:10..20], [BLESS:0, 1])
 ```
 
-## Python Integration
+Parameter studies are part of the language. You can sweep over AC, spell save DC, level, strategy, or toggles like `bless` without switching tools.
 
-You can also keep a persistent dice session from Python:
+### Common Pitfalls
+
+Two common mistakes are about independence:
+
+```dice
+2d6 == 7
+(2 * d6) == 7
+d6 ^ 2
+(d6 + 1) ^ 2
+```
+
+- `2d6` means two independent `d6` rolls added together.
+- `2 * d6` doubles one sampled `d6` result, which is a different distribution.
+- `d6 ^ 2` means independent repetition and summation, not exponentiation.
+- `(d6 + 1) ^ 2` repeats the whole expression independently twice.
+
+`split` is the other important early pitfall. It reuses one sampled value across branches, which is exactly what you want for crit/hit/miss logic, but it is not a sequence of fresh rolls.
+
+## Stage 2: Practical Language Features
+
+### Functions And Variables
+
+Small functions are enough for a lot of reusable combat logic:
+
+```dice
+hit(ac, bonus=7): d20 + bonus >= ac
+damage(ac, bonus=7): hit(ac, bonus) -> 8 | 0
+
+hit(16)
+damage([AC:10..18])
+```
+
+Defaults keep common variants compact, and named helpers make larger studies easier to read.
+
+### Sweeps
+
+Sweeps are the main way to compare many cases:
+
+```dice
+d20 >= [AC:10..20]
+(d20 + 7 >= [AC:10..20] -> 8 | 0) $ mean
+attack_damage(ac, bless=0): (d20 + (bless -> d4 | 0) + 7 >= ac -> 8 | 0) $ mean
+attack_damage([AC:10..20], [BLESS:0, 1])
+```
+
+Sweeps work almost anywhere in the language, so multi-case studies stay close to the one-case version.
+
+### Imports And Reuse
+
+Imports are explicit and file-based:
+
+```dice
+import "std:dnd/weapons"; longsword_attack(16, 7, 4)
+import "std:dnd/core"; save_half(15, 2, 8 d 6)
+```
+
+Use relative imports for your own helper files, and `std:...` for the packaged standard library.
+
+### split
+
+Use `split` when one roll must drive several decisions:
+
+```dice
+split d20 | == 20 -> 16 | + 7 >= 16 -> 8 ||
+split d20 as roll | roll == 20 -> 16 | roll + 7 >= 16 -> 8 ||
+```
+
+This is useful for crit logic, death saves, exploding-style conditions, and other rules where one die result controls several outcomes. Later clauses only see what earlier clauses did not already match.
+
+### Basic Stochastic Operations
+
+Built-in summary operations cover the usual probability questions:
+
+```dice
+d20 $ mean
+d20 $ sample
+d20 $ var
+cum(d20)
+surv(d20)
+```
+
+- `mean` for expected value
+- `sample` for one concrete draw
+- `var` and `std` for swinginess
+- `cum` and `surv` for “at most” and “at least”
+
+### Rendering
+
+Rendering uses the same expressions:
+
+```dice
+r_title("Expected damage vs AC"); r_auto((d20 + 7 >= [AC:10..20] -> 8 | 0) $ mean, x="AC", y="Expected damage"); render()
+```
+
+That keeps the calculation and the chart in one file.
+
+## Python Extension
+
+`dice` is designed to extend cleanly with Python.
+
+Common workflows:
+
+1. import trusted Python helper modules into `dice`
+2. call `dice` from Python for postprocessing, tooling, or larger applications
+
+Import a Python helper module like this:
+
+```dice
+import "examples/02_python_extensions/basic_library.py"; add_two([1..3])
+```
+
+The Python side exports functions with `@dicefunction`:
 
 ```python
-from dice import D, dice_interpreter, dicefunction
-from diceengine import Distribution, FiniteMeasure, Sweep, greaterorequal, rollsingle
+from dice import dicefunction
+
+@dicefunction
+def add_two(value):
+    return value + 2
+```
+
+You can also call `dice` from Python:
+
+```python
+from dice import dice_interpreter, dicefunction
 
 session = dice_interpreter()
 result = session("d20 >= [AC:10..12] -> 5 | 0")
-session.assign("cached", result)
-session('r_title("Cached")')
-session("r_auto(cached)")
-session("render()")
 
 @dicefunction
 def add_two(value):
     return value + 2
 
 session.register_function(add_two)
-
-direct = greaterorequal(rollsingle(20), 11)
+again = session("add_two([1..3])")
 ```
 
-Pass `executor=...` to `dice_interpreter(...)` when you want a non-default backend. Decorate exported Python helpers with `@dicefunction`, then register them with `session.register_function(...)`.
+The main runtime types are:
 
-- `@dicefunction` gives Python helpers dice lifting semantics in both direct Python calls and dice calls.
-- `@dicefunction(pure=True)` marks a Python helper as author-declared pure and enables host-side memoization for the current non-sweep cache path.
-- Untyped parameters receive projected cell values, not whole sweeps.
-- Parameters typed as `Distribution` or `FiniteMeasure` are auto-lifted cellwise.
-- Parameters typed as `Sweep[...]` receive the full sweep container.
-- Python host functions may use ordinary Python defaults and keyword arguments.
-- `from dice import D` allows dice-expression defaults for Python functions, for example `def fireball(dc, save_bonus=D("default_save_bonus")): ...`.
-- `D("...")` defaults are evaluated against dice globals only during dice-session calls, not function parameters or caller locals.
-- Registered functions may return scalars, `FiniteMeasure`, `Distribution`, `Sweep[FiniteMeasure]`, or `Sweep[Distribution]`.
-- Call `session.invalidate_caches()` if a declared-pure Python helper depends on mutable Python globals or closures that changed outside dice.
+- `Distribution` for probability mass
+- `FiniteMeasure` for weighted finite values
+- `Sweep[T]` for parameter studies
+- tuples and records for structured values and coordinates
 
-User-facing examples now live under [examples/](/home/felix/_Documents/Projects/dice/examples), with Python-extension examples under [examples/02_python_extensions](/home/felix/_Documents/Projects/dice/examples/02_python_extensions).
+Typed Python parameters can receive whole distributions or whole sweeps rather than individual projected cell values. See the [Python integration manual page](manual/reference/python-integration.md) and [Python extension examples](examples/02_python_extensions/README.md) for details.
 
-## Comments And Imports
+## Language Features At A Glance
 
-- `# ...` starts a line comment and can also appear after code on the same line.
-- `import "helpers"` imports another dice file once when the target is `helpers.dice`.
-- `import "helpers.py"` executes a Python file once and registers functions marked with `@dicefunction`.
-- Relative imports are resolved from the file that contains the import.
-- Absolute paths such as `import "/tmp/helpers"` are supported.
-- `std:...` imports such as `import "std:dnd/weapons"` resolve inside dice's packaged standard library.
-- Python imports execute trusted local code and require the explicit `.py` suffix.
+Major features:
 
-## Examples
+- exact dice distributions and arithmetic
+- conditional expressions for hit, save, and branch logic
+- named sweeps for parameter studies
+- reducers such as `sumover(...)`, `meanover(...)`, and `argmaxover(...)`
+- `split` for shared-roll logic
+- report builders such as `r_auto(...)`, `r_compare(...)`, and `render(...)`
+- imports for reusable dice code and Python helpers
+- Python embedding and extension APIs
 
-```dice
-hit(ac): d20 >= ac; hit(11)
-hit(ac): d20 >= ac; damage(ac): hit(ac) -> 5 | 0; damage([10..15])
-hit(ac): d20 >= ac; hit([AC:10..15])
-crit(ac, dmg): d20 == 20 -> dmg | 0; crit(15, 8)
-import "std:dnd/weapons"; longsword_attack(16, 7, 4)
-always(): 5; always()
-rolln(a, b): a d b; rolln(2, 2)
-split d20 | == 20 -> 10 | + 5 >= 15 -> 5 ||
-d6 ^ 3
-(d6 + 1) ^ 3
-d2 ^ 3
-sumover([party:1, 2, 3], "party")
-argmaxover([PLAN:1, 2] + [AC:10, 11], "PLAN")
-total([party:1, 2, 3])
-r_title("d20"); r_auto(d20); render()
-add(1, 1)
-greaterorequal(d20, 11)
-rollhigh(3, 20, 1)
-d20 >= 11 $ reselse(5, 0)
-d20
-2d6
-d20 >= 11
-[5..7]
-[AC:5..7]
-d20 == [5..7]
-d20 >= [5,11]
-d20 >= 11 -> 5
-d20 >= 11 -> 2d6
-d20 >= 11 -> 10 | 5
-d20 < 14 -> 2d10 | / 2
-d20 < 14 -> 2d10 | // 2
-{10, 15}
-d{10, 15}
-d20 >= 19
-d20 == 20
-d20 in {1, 20}
-1 + 1
-3 / 2
-3 // 2
-d2 + d2
-[1..2] + 1
-d+20
-d{d6, d8}
-~2d6
-d20 >= 11 -> 5 | 0 $ mean
-d20 $ sample
-d2 $ var
-d2 $ std
-d-20
-3d20h1
-3d20l1
+For the full language reference, see the [language manual](manual/index.md). For more worked examples, see [examples/README.md](examples/README.md).
+
+## Installation
+
+The local version is currently the most complete way to use `dice`.
+
+```bash
+git clone https://github.com/felixmueh/dice.git
+cd dice
+python3 -m venv .venv
+. .venv/bin/activate
+pip install -r requirements.txt
+python3 dice.py "d20 >= 15 -> 8 | 0"
 ```
+
+If you also want to build the documentation site locally:
+
+```bash
+pip install -r requirements-docs.txt
+mkdocs serve
+```
+
+## Usage
+
+The CLI has three main modes:
+
+```bash
+python3 dice.py --interactive
+python3 dice.py "d20 >= 11 -> 5"
+python3 dice.py --file path/to/program.dice
+```
+
+Useful flags:
+
+- `-R N` or `--round N` to round displayed numeric output
+- `--json` to emit structured JSON
+- `-v` to print the input together with the result
+
+Many output and rendering settings can also be set inside a dice program or an interactive session:
+
+- `$ set_round N`
+- `$ set_render_mode blocking|nonblocking|deferred`
+- `$ set_probability_mode percent|raw`
+- `set_render_autoflush("on" | "off")`
+- `set_render_omit_dominant_zero("on" | "off")`
+
+That means you can keep output preferences close to the program that produces the result.
+
+## Similar Projects
+
+- [AnyDice](https://anydice.com/) is the classic browser-based dice calculator and one of the main inspirations for this project.
+- Troll is another dice language with strong dice-pool algebra. `dice` uses Troll for parity testing on part of its behavior.
+
+## Performance
+
+`dice` is an exact engine, not a Monte Carlo sampler. For many additive RPG calculations that makes it both more accurate and surprisingly fast. For heavily branching workloads, Monte Carlo can still be the better fit.
+
+For the representative `hexed_scorching_ray` cell `slot=2, mode=normal, atk=7, bless=0, ac=13`, the exact PMF and the vectorized Monte Carlo overlays look like this:
+
+![Exact vs NumPy Monte Carlo PMF](resources/images/readme_benchmark_pmf.png)
+
+For benchmark details and scripts, see [benchmarks/README.md](benchmarks/README.md).
 
 ## Development Note
 
-The examples above are executed by the test suite. If you change syntax or semantics, update the examples and the runtime together.
+The `dice` examples in this README are executed by the test suite. If you change syntax or semantics, update the examples and the runtime together.

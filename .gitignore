@@ -150,3 +150,6 @@ static
 
 # Local benchmark artifacts
 /benchmarks/results/local/
+
+# Agent working notes stay local (not published)
+agent-notes/

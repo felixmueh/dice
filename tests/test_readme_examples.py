@@ -25,10 +25,13 @@ def readme_examples():
     blocks = re.findall(r"```dice\n(.*?)```", text, re.DOTALL)
     examples = []
     for block in blocks:
-        for raw_line in block.splitlines():
-            line = raw_line.strip()
-            if line:
-                examples.append(line)
+        lines = [line.rstrip() for line in block.splitlines()]
+        while lines and not lines[0].strip():
+            lines.pop(0)
+        while lines and not lines[-1].strip():
+            lines.pop()
+        if lines:
+            examples.append("\n".join(lines))
     return examples
 
 class ReadmeExamplesTest(unittest.TestCase):
