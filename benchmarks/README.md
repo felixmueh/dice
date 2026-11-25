@@ -56,28 +56,30 @@ baselines without creating benchmark churn in the repository.
 
 ## Commands
 
+Run these from the repository root:
+
 ```bash
-python3 /home/felix/_Documents/Projects/dice/benchmarks/fast/run.py
+python3 benchmarks/fast/run.py
 ```
 
 ```bash
-python3 /home/felix/_Documents/Projects/dice/benchmarks/slow/run.py
+python3 benchmarks/slow/run.py
 ```
 
 ```bash
-python3 /home/felix/_Documents/Projects/dice/benchmarks/end_to_end/run.py
+python3 benchmarks/end_to_end/run.py
 ```
 
 ```bash
-python3 /home/felix/_Documents/Projects/dice/benchmarks/monte_carlo_comparison/hexed_scorching_ray/run.py
+python3 benchmarks/monte_carlo_comparison/hexed_scorching_ray/run.py
 ```
 
 ```bash
-python3 /home/felix/_Documents/Projects/dice/benchmarks/monte_carlo_comparison/chaos_bolt_chain/run.py
+python3 benchmarks/monte_carlo_comparison/chaos_bolt_chain/run.py
 ```
 
 ```bash
-python3 /home/felix/_Documents/Projects/dice/benchmarks/exploratory/run.py
+python3 benchmarks/exploratory/run.py
 ```
 
 Notes:
