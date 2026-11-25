@@ -33,7 +33,7 @@
 - Prefer pointing agents to user-facing docs instead of duplicating semantics in `agent-notes/`. Keep internal notes shorter unless extra implementation detail is genuinely useful.
 - Multiline functions are part of the active language surface; prefer them over dense one-line helpers when examples need local bindings or repeated subexpressions.
 - Use `==` for singleton exact checks such as `d20 == 20`, ordinary comparisons for thresholds such as `d20 >= 15`, and `in` for genuine membership checks such as `d20 in {1, 20}`.
-- `notes.org` and `scripts/` are useful for history and intent, but they are not guaranteed to match the active runtime.
+- `scripts/` and the local `agent-notes/notes.org` (2020 interpreter-tutorial notes) are useful for history and intent, but they are not guaranteed to match the active runtime.
 - `dnd-sources/` is local development/reference material only. Do not quote or surface it in user-facing docs, tests, or examples unless explicitly asked.
 - Record agent observations in `agent-notes/backlog/language-observations-and-painpoints.md`.
 - For performance-sensitive work, consult `benchmarks/README.md` and the notes under `agent-notes/design/`. Normal `git commit` already runs the staged-tree `fast/` and `end_to_end/` suites via `.githooks/pre-commit`.

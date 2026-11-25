@@ -20,11 +20,11 @@ from tests.render_gallery_cases import CASE_NAMES, render_case
 
 
 SAMPLE_FILES = (
-    ROOT / "samples" / "dnd" / "ability_scores_4d6h3.dice",
-    ROOT / "samples" / "dnd" / "agonizing_eldritch_blast_vs_ac.dice",
-    ROOT / "samples" / "dnd" / "combat_profiles.dice",
-    ROOT / "samples" / "dnd" / "eldritch_blast_debug.dice",
-    ROOT / "samples" / "dnd" / "strategy_heatmap.dice",
+    ROOT / "examples" / "01_dnd" / "ability_scores_4d6h3.dice",
+    ROOT / "examples" / "01_dnd" / "agonizing_eldritch_blast_vs_ac.dice",
+    ROOT / "examples" / "01_dnd" / "combat_profiles.dice",
+    ROOT / "examples" / "01_dnd" / "eldritch_blast_debug.dice",
+    ROOT / "examples" / "01_dnd" / "strategy_heatmap.dice",
 )
 RENDER_CALL_RE = re.compile(r"render\s*\([^)]*\)")
 

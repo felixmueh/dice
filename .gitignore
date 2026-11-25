@@ -151,5 +151,7 @@ static
 # Local benchmark artifacts
 /benchmarks/results/local/
 
-# Agent working notes stay local (not published)
+# Agent working notes stay local (not published). SESSION.md is the agents'
+# scratch list of deferred issues; it lives in agent-notes/ when kept.
 agent-notes/
+/SESSION.md
