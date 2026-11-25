@@ -1,2 +1,7 @@
 timeout-decorator
-matplotlib
+# Pinned because tests/test_render_golden.py compares rendered PNGs pixel by
+# pixel. Text extents come from the FreeType build and the DejaVu Sans font
+# bundled in the matplotlib wheel, so another matplotlib version shifts the
+# images by a pixel or two. Regenerate the references with
+# `python3 scripts/generate_render_gallery.py --section curated` when bumping.
+matplotlib==3.11.2

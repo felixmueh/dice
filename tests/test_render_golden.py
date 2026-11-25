@@ -20,6 +20,13 @@ from matplotlib.testing.compare import compare_images
 from tests.render_gallery_cases import CASE_NAMES, expected_case_path, render_case
 
 
+# Guards the report renderer's visual output (dice/viewer.py): layout, house
+# style, colours, labels and report composition for four curated cases in
+# tests/render_gallery_cases.py. The references are only valid for the
+# matplotlib version pinned in requirements.txt; after a deliberate renderer
+# change or a version bump, regenerate them in a clean environment with
+# `python3 scripts/generate_render_gallery.py --section curated --output-dir DIR`,
+# compare old and new images by eye, and copy DIR/curated/*.png here.
 class RenderGoldenImageTest(unittest.TestCase):
     def test_curated_render_gallery_matches_png_baselines(self):
         with tempfile.TemporaryDirectory() as tempdir:

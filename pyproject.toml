@@ -13,6 +13,8 @@ version = "0.1.0"
 description = "A language for exact tabletop dice and probability calculations"
 readme = "README.md"
 # Keep in sync with requirements.txt, which serves the no-install workflow.
+# requirements.txt pins matplotlib exactly for the golden image tests; an
+# installed library only needs a compatible matplotlib, so it stays unpinned here.
 dependencies = [
     "timeout-decorator",
     "matplotlib",
