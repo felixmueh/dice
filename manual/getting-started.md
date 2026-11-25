@@ -16,7 +16,7 @@ The language stays readable because most expressions look close to how people al
 
 ## Exact semantics
 
-The parser treats programs as newline- or semicolon-separated statements in `diceparser.py`, and the runtime evaluates them through `interpreter.py` and `diceengine.py`.
+The parser treats programs as newline- or semicolon-separated statements in `dice/diceparser.py`, and the runtime evaluates them through `dice/interpreter.py` and `dice/diceengine.py`.
 
 Important exact points:
 

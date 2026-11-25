@@ -6,9 +6,9 @@ from collections import defaultdict
 import random
 import time
 
-from diagnostics import RuntimeError as DiceRuntimeError
-import diceengine
-from diceengine import (
+from .diagnostics import RuntimeError as DiceRuntimeError
+from . import diceengine
+from .diceengine import (
     FALSE,
     TRUE,
     Distrib,
@@ -20,10 +20,10 @@ from diceengine import (
     _sample_from_distribution,
     lift_sweeps,
 )
-from diceparser import DiceParser
-from executor import ExactExecutor
-from interpreter import Interpreter
-from lexer import Lexer
+from .diceparser import DiceParser
+from .executor import ExactExecutor
+from .interpreter import Interpreter
+from .lexer import Lexer
 
 
 class SampledDistrib(Distrib):

@@ -14,10 +14,10 @@ os.environ.setdefault("MPLCONFIGDIR", str(mpl_config))
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-import viewer
+from dice import viewer
 from dice import interpret_file, interpret_statement
-from diceengine import RenderConfig, ReportSpec, report_add_note, report_append_chart, report_set_title
-from executor import ExactExecutor
+from dice.diceengine import RenderConfig, ReportSpec, report_add_note, report_append_chart, report_set_title
+from dice.executor import ExactExecutor
 
 
 CASE_NAMES = (

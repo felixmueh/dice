@@ -1,0 +1,32 @@
+# Packaging metadata so `pip install -e .` puts a `dice` command on PATH and
+# makes `from dice import ...` work outside the checkout. Running from the
+# checkout needs none of this: `python3 -m dice` works from the repository root.
+
+[build-system]
+requires = ["setuptools>=64"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "dice"
+# TODO: no release process exists yet; bump this when one does.
+version = "0.1.0"
+description = "A language for exact tabletop dice and probability calculations"
+readme = "README.md"
+# Keep in sync with requirements.txt, which serves the no-install workflow.
+dependencies = [
+    "timeout-decorator",
+    "matplotlib",
+]
+
+[project.scripts]
+dice = "dice.cli:main"
+
+[tool.setuptools]
+# The repository root also holds tests/, benchmarks/, scripts/, examples/ and
+# manual/; list the one package explicitly instead of relying on discovery.
+packages = ["dice"]
+
+[tool.setuptools.package-data]
+# `import "std:..."` resolves against dice/stdlib next to interpreter.py, so the
+# standard library ships inside the package.
+dice = ["stdlib/**/*.dice"]

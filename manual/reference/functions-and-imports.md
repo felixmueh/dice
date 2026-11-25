@@ -4,13 +4,13 @@
 
 Functions let you name repeated logic once and reuse it across calculations.
 
-Imports let you split helpers across files and reuse packaged standard-library code such as the DnD helpers in `stdlib/`.
+Imports let you split helpers across files and reuse packaged standard-library code such as the DnD helpers in `dice/stdlib/`.
 
 Together, these are the main tools for moving from one-off expressions to reusable analysis programs.
 
 ## Exact semantics
 
-Function parsing and statement structure live in `diceparser.py`. Function registration, scope handling, dice-file imports, and Python-file imports live in `interpreter.py`.
+Function parsing and statement structure live in `dice/diceparser.py`. Function registration, scope handling, dice-file imports, and Python-file imports live in `dice/interpreter.py`.
 
 Important rules:
 

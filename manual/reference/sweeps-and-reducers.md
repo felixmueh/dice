@@ -14,7 +14,7 @@ This is one of the most useful differences between `dice` and a hand-worked spre
 
 ## Exact semantics
 
-Sweep construction is parsed in `diceparser.py`. The sweep container, indexing rules, reducer semantics, and coordinate-record behavior live in `diceengine.py`.
+Sweep construction is parsed in `dice/diceparser.py`. The sweep container, indexing rules, reducer semantics, and coordinate-record behavior live in `dice/diceengine.py`.
 
 Important rules:
 

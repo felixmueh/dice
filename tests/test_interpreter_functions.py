@@ -15,10 +15,10 @@ os.environ.setdefault("MPLCONFIGDIR", str(mpl_config))
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from diceengine import Distribution, FiniteMeasure, Sweep, FALSE, TRUE
-from diceparser import DiceParser
-from interpreter import Interpreter
-from lexer import Lexer
+from dice.diceengine import Distribution, FiniteMeasure, Sweep, FALSE, TRUE
+from dice.diceparser import DiceParser
+from dice.interpreter import Interpreter
+from dice.lexer import Lexer
 
 
 def interpret(text):

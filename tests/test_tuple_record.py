@@ -16,9 +16,9 @@ os.environ.setdefault("MPLCONFIGDIR", str(mpl_config))
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-import dice
+from dice import cli
 from dice import dice_interpreter, dicefunction, interpret_file, interpret_statement
-from diceengine import Distribution, FiniteMeasure, RecordValue, Sweep, SweepValues, TupleValue
+from dice.diceengine import Distribution, FiniteMeasure, RecordValue, Sweep, SweepValues, TupleValue
 
 
 def only_distribution(result):
@@ -109,22 +109,22 @@ class TupleRecordRuntimeTest(unittest.TestCase):
 
 class TupleRecordFormattingTest(unittest.TestCase):
     def test_text_output_renders_tuple(self):
-        rendered = dice._format_result_text(interpret_statement('(1, "two")'))
+        rendered = cli._format_result_text(interpret_statement('(1, "two")'))
         self.assertEqual(rendered, '(1, "two")')
 
     def test_text_output_renders_record(self):
-        rendered = dice._format_result_text(interpret_statement('(PLAN: "gwm", LEVEL: 11)'))
+        rendered = cli._format_result_text(interpret_statement('(PLAN: "gwm", LEVEL: 11)'))
         self.assertEqual(rendered, '(PLAN: "gwm", LEVEL: 11)')
 
     def test_json_output_serializes_top_level_tuple(self):
-        payload = json.loads(dice._format_result_json(interpret_statement('(1, "two")')))
+        payload = json.loads(cli._format_result_json(interpret_statement('(1, "two")')))
         self.assertEqual(
             payload,
             {"type": "tuple", "items": [1, "two"]},
         )
 
     def test_json_output_serializes_top_level_record(self):
-        payload = json.loads(dice._format_result_json(interpret_statement('(PLAN: "gwm", LEVEL: 11)')))
+        payload = json.loads(cli._format_result_json(interpret_statement('(PLAN: "gwm", LEVEL: 11)')))
         self.assertEqual(
             payload,
             {
@@ -137,7 +137,7 @@ class TupleRecordFormattingTest(unittest.TestCase):
         )
 
     def test_json_output_serializes_structured_distribution_outcomes(self):
-        payload = json.loads(dice._format_result_json(interpret_statement("d{(1,), (2,)}")))
+        payload = json.loads(cli._format_result_json(interpret_statement("d{(1,), (2,)}")))
         self.assertEqual(
             payload["distribution"],
             [
@@ -148,7 +148,7 @@ class TupleRecordFormattingTest(unittest.TestCase):
 
     def test_json_output_serializes_structured_axis_values_and_cell_scalars(self):
         result = Sweep.from_values(SweepValues((TupleValue((1,)), TupleValue((2,))), name="CASE"))
-        payload = json.loads(dice._format_result_json(result))
+        payload = json.loads(cli._format_result_json(result))
         self.assertEqual(
             payload["axes"][0]["values"],
             [
@@ -171,7 +171,7 @@ class TupleRecordFormattingTest(unittest.TestCase):
                 name="CASE",
             )
         )
-        payload = json.loads(dice._format_result_json(result))
+        payload = json.loads(cli._format_result_json(result))
         self.assertEqual(
             payload["axes"][0]["values"][0],
             {

@@ -13,7 +13,7 @@ Use it when you want to:
 
 ## Exact semantics
 
-The public Python-facing entry points live in `dice.py`, while function registration and lifting behavior are implemented through `interpreter.py`, `executor.py`, and `diceengine.py`.
+The public Python-facing entry points are exported from the `dice` package (`dice/__init__.py`, implemented in `dice/cli.py`), while function registration and lifting behavior are implemented through `dice/interpreter.py`, `dice/executor.py`, and `dice/diceengine.py`.
 
 Important rules:
 

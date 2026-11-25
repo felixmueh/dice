@@ -13,7 +13,7 @@ Most user code does not need to think in terms of implementation classes, but it
 
 ## Exact semantics
 
-These runtime shapes are implemented in `diceengine.py`.
+These runtime shapes are implemented in `dice/diceengine.py`.
 
 - `FiniteMeasure` is a finite weighted support. Weights are relative and do not need to sum to `1`.
 - `Distribution` is a normalized probability distribution.
@@ -32,7 +32,7 @@ Useful exact rules:
 - `(1,)` is a one-element tuple.
 - `(PLAN: "gwm", LEVEL: 11)` is a record.
 
-Current limitations from `diceengine.py` and the tuple/record tests:
+Current limitations from `dice/diceengine.py` and the tuple/record tests:
 
 - tuple and record comparisons are not supported yet
 - tuple and record membership tests with `in` are not supported yet

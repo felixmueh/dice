@@ -17,9 +17,9 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from dice import D, dice_interpreter, dicefunction
-from diceengine import Distribution, FiniteMeasure, TRUE, FALSE, Sweep
-from executor import ExactExecutor
-from hostfunctions import get_dicefunction_metadata
+from dice.diceengine import Distribution, FiniteMeasure, TRUE, FALSE, Sweep
+from dice.executor import ExactExecutor
+from dice.hostfunctions import get_dicefunction_metadata
 
 
 def only_distribution(result):

@@ -13,17 +13,19 @@ import random
 import re
 from typing import Any, Generic, TypeVar
 
-from diagnostics import RuntimeError as DiceRuntimeError
-from hostfunctions import dicefunction
+from .diagnostics import RuntimeError as DiceRuntimeError
+from .hostfunctions import dicefunction
 
 
 TRUE = 1
 FALSE = 0
 PROBABILITY_TOLERANCE = 1e-9
 _renderer_modules = {}
+# Renderer backends are sibling modules of this package, imported lazily so the
+# json backend (and dice-web, which replaces viewer.py) never imports matplotlib.
 _RENDERER_MODULE_NAMES = {
-    "matplotlib": "viewer",
-    "json": "jsonrenderer",
+    "matplotlib": ".viewer",
+    "json": ".jsonrenderer",
 }
 _IDENTIFIER_PATTERN = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
 _OMITTED = object()
@@ -167,7 +169,7 @@ def _get_renderer(render_config=None):
     backend = _normalize_render_backend(render_config.backend)
     renderer = _renderer_modules.get(backend)
     if renderer is None:
-        renderer = importlib.import_module(_RENDERER_MODULE_NAMES[backend])
+        renderer = importlib.import_module(_RENDERER_MODULE_NAMES[backend], __package__)
         _renderer_modules[backend] = renderer
     return renderer
 

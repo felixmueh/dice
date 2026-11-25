@@ -1,11 +1,14 @@
-#!/usr/bin/env python3
-"""Interactive interpreter for the dice language"""
+"""Command-line interface, REPL and Python embedding API for the dice language.
+
+Run it with ``python3 -m dice`` (see ``__main__.py``); the public names are
+re-exported from the package root, so callers write ``from dice import ...``.
+"""
 
 import argparse
 import os
 import sys
 
-from diagnostics import DEFAULT_SOURCE_NAME, DiagnosticError, format_diagnostic
+from .diagnostics import DEFAULT_SOURCE_NAME, DiagnosticError, format_diagnostic
 try:
     import timeout_decorator
 except ImportError:
@@ -23,9 +26,9 @@ try:
 except ImportError:  # pragma: no cover - platform-specific
     readline = None
 
-from interpreter import Interpreter
-from hostfunctions import D, dicefunction
-from diceengine import (
+from .interpreter import Interpreter
+from .hostfunctions import D, dicefunction
+from .diceengine import (
     Distributions,
     Distribution,
     FiniteMeasure,
@@ -34,9 +37,9 @@ from diceengine import (
     RenderConfig,
     wait_for_rendered_figures,
 )
-from diceparser import DiceParser, ParserError
-from lexer import Lexer, LexerError
-from resultjson import (
+from .diceparser import DiceParser, ParserError
+from .lexer import Lexer, LexerError
+from .resultjson import (
     format_result_json as _format_result_json,
     is_numeric as _is_numeric,
     resolve_probability_mode as _resolve_probability_mode,
@@ -628,7 +631,7 @@ def _resolve_cli_roundlevel(roundlevel, json_output=False):
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Process some inputs.")
+    parser = argparse.ArgumentParser(prog="dice", description="Process some inputs.")
     parser.add_argument("-R", "--round", "--roundlevel", dest="roundlevel", type=int, default=None, help="Set rounding level")
     parser.add_argument("-i", "--interactive", action="store_true", help="Run in interactive mode")
     parser.add_argument("-f", "--file", dest="file", help="Execute a dice source file")
@@ -736,6 +739,3 @@ def main():
     wait_for_rendered_figures(interpreter.executor.render_config)
     return 0
 
-
-if __name__ == "__main__":
-    sys.exit(main())

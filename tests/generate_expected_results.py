@@ -18,8 +18,9 @@ os.environ.setdefault("MPLCONFIGDIR", str(mpl_config))
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from dice import interpret_file, interpret_statement, _serialize_result
-from diceengine import SweepValues
+from dice import interpret_file, interpret_statement
+from dice.cli import _serialize_result
+from dice.diceengine import SweepValues
 from tests.json_regression_cases import all_cases
 
 

@@ -15,7 +15,7 @@ os.environ.setdefault("MPLCONFIGDIR", str(mpl_config))
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from lexer import AS, CARET, DEDENT, EOF, HIGH, ID, IMPORT, INDENT, INTEGER, LOW, MATCH, OTHERWISE, PIPE, RES, ROLL, SEMI, SPLIT, SPLITZERO, STRING, AT, Lexer
+from dice.lexer import AS, CARET, DEDENT, EOF, HIGH, ID, IMPORT, INDENT, INTEGER, LOW, MATCH, OTHERWISE, PIPE, RES, ROLL, SEMI, SPLIT, SPLITZERO, STRING, AT, Lexer
 
 
 def tokens(text):

@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-`dice` is a Python language for exact and sampled tabletop probability calculations. The active runtime is the parser/interpreter/engine stack plus the CLI in `dice.py`, with user-facing semantics documented in `README.md`, `manual/`, and `examples/`.
+`dice` is a Python language for exact and sampled tabletop probability calculations. The active runtime is the `dice/` package: the parser/interpreter/engine stack plus the CLI in `dice/cli.py` (run as `python3 -m dice`), with user-facing semantics documented in `README.md`, `manual/`, and `examples/`.
 
 ## Where To Look
 
@@ -10,18 +10,21 @@
 - `manual/`: canonical long-form user-facing manual and MkDocs source
 - `examples/`: user-facing sample programs, including D&D and Python-extension examples
 - `agent-notes/README.md`: internal map of architecture, design notes, research, and backlog
-- `lexer.py` -> `diceparser.py` -> `syntaxtree.py` -> `interpreter.py` -> `diceengine.py`: core language pipeline
-- `executor.py`: builtin registration and executor surface shared by dice and Python
-- `viewer.py`, `renderplan.py`, `jsonrenderer.py`, `resultjson.py`: report planning and rendering
+- `dice/__init__.py`: the public Python surface (`from dice import dice_interpreter, dicefunction, ...`); `dice/__main__.py` starts the CLI
+- `dice/lexer.py` -> `dice/diceparser.py` -> `dice/syntaxtree.py` -> `dice/interpreter.py` -> `dice/diceengine.py`: core language pipeline
+- `dice/executor.py`: builtin registration and executor surface shared by dice and Python
+- `dice/viewer.py`, `dice/renderplan.py`, `dice/jsonrenderer.py`, `dice/resultjson.py`: report planning and rendering
+- `dice/stdlib/`: the packaged standard library behind `import "std:..."`
 - `tests/`: executable contract, especially `tests/test_readme_examples.py` and `tests/test_manual_examples.py`
 
 ## Important Rules
 
 - Treat `README.md`, `manual/`, `examples/`, and the tests as the current contract.
-- For syntax changes, update `lexer.py`, `diceparser.py`, and `interpreter.py` together.
-- For semantic changes, check `diceengine.py` first. Most exact operator and callable behavior lives there.
-- When adding builtins, define the behavior in `diceengine.py` and register it through `executor.py` so dice and Python share one callable surface.
+- For syntax changes, update `dice/lexer.py`, `dice/diceparser.py`, and `dice/interpreter.py` together.
+- For semantic changes, check `dice/diceengine.py` first. Most exact operator and callable behavior lives there.
+- When adding builtins, define the behavior in `dice/diceengine.py` and register it through `dice/executor.py` so dice and Python share one callable surface.
 - Keep imports explicit and runtime-visible. Resolve relative imports from the importing file; do not reintroduce hidden preprocessing behavior by accident.
+- Python modules inside `dice/` import each other relatively (`from .diceengine import ...`); tests, benchmarks and scripts import `dice.<module>`. dice-web vendors the package into Pyodide and swaps in its own `dice/viewer.py`, so keep the matplotlib import confined to `viewer.py`.
 - Keep fenced `dice` examples in `README.md` and `manual/` executable, or update the runtime and tests in the same change.
 - Add end-to-end tests for semantic changes where practical.
 

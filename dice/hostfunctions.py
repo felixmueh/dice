@@ -10,8 +10,8 @@ import inspect
 from itertools import product
 from typing import Any, get_origin, get_type_hints
 
-from diceparser import DiceParser
-from lexer import Lexer, ASSIGN, SEMI, PRINT
+from .diceparser import DiceParser
+from .lexer import Lexer, ASSIGN, SEMI, PRINT
 
 
 MISSING = object()
@@ -19,7 +19,7 @@ _DICEFUNCTION_ATTR = "_dicefunction_metadata"
 
 
 def _diceengine():
-    import diceengine
+    from . import diceengine
 
     return diceengine
 

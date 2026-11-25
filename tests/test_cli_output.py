@@ -19,10 +19,10 @@ os.environ.setdefault("MPLCONFIGDIR", str(mpl_config))
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-import dice
-from dice import interpret_statement
-from diceengine import Distribution, FiniteMeasure, Sweep
-from interpreter import Interpreter
+from dice import cli
+from dice import dicefunction, interpret_statement
+from dice.diceengine import Distribution, FiniteMeasure, Sweep
+from dice.interpreter import Interpreter
 
 
 def only_distribution(result):
@@ -42,71 +42,71 @@ class CliFormattingTest(unittest.TestCase):
         self.assertAlmostEqual(distrib[3], 1 / 3)
 
     def test_rounded_rendering_handles_wide_distribution_without_runtime_error(self):
-        rendered = dice._format_result_text(interpret_statement("2d6 + 2d6", roundlevel=2), roundlevel=2)
+        rendered = cli._format_result_text(interpret_statement("2d6 + 2d6", roundlevel=2), roundlevel=2)
         self.assertIn(" 14: 11.27%", rendered)
         self.assertIn("(E): 14", rendered)
 
     def test_unswept_distribution_uses_pretty_lines(self):
-        rendered = dice._format_result_text(interpret_statement("d20 >= 11", roundlevel=2), roundlevel=2)
+        rendered = cli._format_result_text(interpret_statement("d20 >= 11", roundlevel=2), roundlevel=2)
         self.assertEqual(rendered, "  0: 50%\n  1: 50%\n(E): 0.50")
 
     def test_unswept_distribution_aligns_numeric_labels(self):
-        rendered = dice._format_result_text(interpret_statement("d20", roundlevel=2), roundlevel=2)
+        rendered = cli._format_result_text(interpret_statement("d20", roundlevel=2), roundlevel=2)
         self.assertEqual(
             rendered,
             "  1: 5%\n  2: 5%\n  3: 5%\n  4: 5%\n  5: 5%\n  6: 5%\n  7: 5%\n  8: 5%\n  9: 5%\n 10: 5%\n 11: 5%\n 12: 5%\n 13: 5%\n 14: 5%\n 15: 5%\n 16: 5%\n 17: 5%\n 18: 5%\n 19: 5%\n 20: 5%\n(E): 10.50",
         )
 
     def test_scalar_distribution_collapses_to_number(self):
-        rendered = dice._format_result_text(interpret_statement("~(d20 >= 11 -> 5 | 0)", roundlevel=2), roundlevel=2)
+        rendered = cli._format_result_text(interpret_statement("~(d20 >= 11 -> 5 | 0)", roundlevel=2), roundlevel=2)
         self.assertEqual(rendered, "2.50")
 
     def test_string_result_renders_directly(self):
-        rendered = dice._format_result_text(interpret_statement("type(d20)"), roundlevel=2)
+        rendered = cli._format_result_text(interpret_statement("type(d20)"), roundlevel=2)
         self.assertEqual(rendered, "Distribution")
 
     def test_shape_result_renders_directly(self):
-        rendered = dice._format_result_text(interpret_statement("shape(d20 >= [AC:10..12])"), roundlevel=2)
+        rendered = cli._format_result_text(interpret_statement("shape(d20 >= [AC:10..12])"), roundlevel=2)
         self.assertEqual(rendered, "[AC: (10, 11, 12)]")
 
     def test_named_distribution_sweep_uses_table_header(self):
-        rendered = dice._format_result_text(interpret_statement("d20 >= [AC:10..12]", roundlevel=2), roundlevel=2)
+        rendered = cli._format_result_text(interpret_statement("d20 >= [AC:10..12]", roundlevel=2), roundlevel=2)
         self.assertEqual(
             rendered,
             "/AC    10    11    12\n  0   45%   50%   55%\n  1   55%   50%   45%\n(E)  0.55  0.50  0.45",
         )
 
     def test_distribution_sweep_shows_integral_probabilities_without_decimal_padding(self):
-        rendered = dice._format_result_text(interpret_statement("d2 >= [AC:1..3]", roundlevel=2), roundlevel=2)
+        rendered = cli._format_result_text(interpret_statement("d2 >= [AC:1..3]", roundlevel=2), roundlevel=2)
         self.assertEqual(
             rendered,
             "/AC     1     2     3\n  1  100%   50%    0%\n  0    0%   50%  100%\n(E)     1  0.50     0",
         )
 
     def test_numeric_distribution_sweep_includes_mean_row(self):
-        rendered = dice._format_result_text(interpret_statement("d20 + 6 >= [AC:10..12] -> 2d6 + 4", roundlevel=2), roundlevel=2)
+        rendered = cli._format_result_text(interpret_statement("d20 + 6 >= [AC:10..12] -> 2d6 + 4", roundlevel=2), roundlevel=2)
         self.assertEqual(
             rendered,
             "/AC      10      11      12\n  0     15%     20%     25%\n  6   2.36%   2.22%   2.08%\n  7   4.72%   4.44%   4.17%\n  8   7.08%   6.67%   6.25%\n  9   9.44%   8.89%   8.33%\n 10  11.81%  11.11%  10.42%\n 11  14.17%  13.33%  12.50%\n 12  11.81%  11.11%  10.42%\n 13   9.44%   8.89%   8.33%\n 14   7.08%   6.67%   6.25%\n 15   4.72%   4.44%   4.17%\n 16   2.36%   2.22%   2.08%\n(E)    9.35    8.80    8.25",
         )
 
     def test_named_scalar_sweep_uses_single_axis_header(self):
-        rendered = dice._format_result_text(interpret_statement("~(d20 >= [AC:10..12] -> 5 | 0)", roundlevel=2), roundlevel=2)
+        rendered = cli._format_result_text(interpret_statement("~(d20 >= [AC:10..12] -> 5 | 0)", roundlevel=2), roundlevel=2)
         self.assertEqual(rendered, "/AC\n10: 2.75\n11: 2.50\n12: 2.25")
 
     def test_named_scalar_sweep_aligns_labels(self):
-        rendered = dice._format_result_text(interpret_statement("~(d20 >= [AC:8..12] -> 5 | 0)", roundlevel=2), roundlevel=2)
+        rendered = cli._format_result_text(interpret_statement("~(d20 >= [AC:8..12] -> 5 | 0)", roundlevel=2), roundlevel=2)
         self.assertEqual(rendered, "/AC\n 8: 3.25\n 9: 3\n10: 2.75\n11: 2.50\n12: 2.25")
 
     def test_two_axis_scalar_result_uses_corner_label(self):
-        rendered = dice._format_result_text(interpret_statement("~([AC:10..11] + [BONUS:1..2])", roundlevel=2), roundlevel=2)
+        rendered = cli._format_result_text(interpret_statement("~([AC:10..11] + [BONUS:1..2])", roundlevel=2), roundlevel=2)
         self.assertEqual(
             rendered,
             "AC/BONUS   1   2\n      10  11  12\n      11  12  13",
         )
 
     def test_json_output_returns_structured_object(self):
-        rendered = dice._format_result_json(interpret_statement("d20 >= 11", roundlevel=2), roundlevel=2)
+        rendered = cli._format_result_json(interpret_statement("d20 >= 11", roundlevel=2), roundlevel=2)
         payload = json.loads(rendered)
         self.assertEqual(payload["type"], "distribution")
         self.assertEqual(
@@ -118,17 +118,17 @@ class CliFormattingTest(unittest.TestCase):
         )
 
     def test_json_output_serializes_string_result(self):
-        rendered = dice._format_result_json(interpret_statement("type(d20)"), roundlevel=2)
+        rendered = cli._format_result_json(interpret_statement("type(d20)"), roundlevel=2)
         payload = json.loads(rendered)
         self.assertEqual(payload, {"type": "string", "value": "Distribution"})
 
     def test_json_output_serializes_shape_string_result(self):
-        rendered = dice._format_result_json(interpret_statement("shape(d20 >= [AC:10..12])"), roundlevel=2)
+        rendered = cli._format_result_json(interpret_statement("shape(d20 >= [AC:10..12])"), roundlevel=2)
         payload = json.loads(rendered)
         self.assertEqual(payload, {"type": "string", "value": "[AC: (10, 11, 12)]"})
 
     def test_raw_probability_mode_uses_raw_text_probabilities(self):
-        rendered = dice._format_result_text(
+        rendered = cli._format_result_text(
             interpret_statement("d20 >= 11", roundlevel=2),
             roundlevel=2,
             probability_mode="raw",
@@ -136,7 +136,7 @@ class CliFormattingTest(unittest.TestCase):
         self.assertEqual(rendered, "  0: 0.50\n  1: 0.50\n(E): 0.50")
 
     def test_json_can_explicitly_use_percent_probabilities(self):
-        rendered = dice._format_result_json(
+        rendered = cli._format_result_json(
             interpret_statement("d20 >= 11", roundlevel=2),
             roundlevel=2,
             probability_mode="percent",
@@ -157,7 +157,7 @@ class CliInteractiveTest(unittest.TestCase):
         with mock.patch("builtins.input", side_effect=["$ set_round 3", "~(d20 >= 11 -> 5 | 0)", "exit"]):
             with mock.patch("sys.stdout", new=io.StringIO()) as stdout:
                 with mock.patch("sys.stderr", new=io.StringIO()) as stderr:
-                    exit_code = dice.runinteractive(args)
+                    exit_code = cli.runinteractive(args)
         self.assertEqual(exit_code, 0)
         self.assertEqual(stderr.getvalue(), "")
         self.assertEqual(stdout.getvalue(), "round = 3\n2.500\n")
@@ -167,7 +167,7 @@ class CliInteractiveTest(unittest.TestCase):
         with mock.patch("builtins.input", side_effect=["$ set_render_mode blocking", "exit"]):
             with mock.patch("sys.stdout", new=io.StringIO()) as stdout:
                 with mock.patch("sys.stderr", new=io.StringIO()) as stderr:
-                    exit_code = dice.runinteractive(args)
+                    exit_code = cli.runinteractive(args)
         self.assertEqual(exit_code, 0)
         self.assertEqual(stderr.getvalue(), "")
         self.assertEqual(stdout.getvalue(), "render_mode = blocking\n")
@@ -177,7 +177,7 @@ class CliInteractiveTest(unittest.TestCase):
         with mock.patch("builtins.input", side_effect=["$ set_probability_mode raw", "d20 >= 11", "exit"]):
             with mock.patch("sys.stdout", new=io.StringIO()) as stdout:
                 with mock.patch("sys.stderr", new=io.StringIO()) as stderr:
-                    exit_code = dice.runinteractive(args)
+                    exit_code = cli.runinteractive(args)
         self.assertEqual(exit_code, 0)
         self.assertEqual(stderr.getvalue(), "")
         self.assertEqual(stdout.getvalue(), "probability_mode = raw\n  0: 0.50\n  1: 0.50\n(E): 0.50\n")
@@ -187,7 +187,7 @@ class CliInteractiveTest(unittest.TestCase):
         with mock.patch("builtins.input", side_effect=["$ set_render_backend json", "exit"]):
             with mock.patch("sys.stdout", new=io.StringIO()) as stdout:
                 with mock.patch("sys.stderr", new=io.StringIO()) as stderr:
-                    exit_code = dice.runinteractive(args)
+                    exit_code = cli.runinteractive(args)
         self.assertEqual(exit_code, 0)
         self.assertEqual(stderr.getvalue(), "")
         self.assertEqual(stdout.getvalue(), "render_backend = json\n")
@@ -197,7 +197,7 @@ class CliInteractiveTest(unittest.TestCase):
         with mock.patch("builtins.input", side_effect=["$ set_render_autoflush off", "exit"]):
             with mock.patch("sys.stdout", new=io.StringIO()) as stdout:
                 with mock.patch("sys.stderr", new=io.StringIO()) as stderr:
-                    exit_code = dice.runinteractive(args)
+                    exit_code = cli.runinteractive(args)
         self.assertEqual(exit_code, 0)
         self.assertEqual(stderr.getvalue(), "")
         self.assertEqual(stdout.getvalue(), "render_autoflush = off\n")
@@ -207,7 +207,7 @@ class CliInteractiveTest(unittest.TestCase):
         with mock.patch("builtins.input", side_effect=["$ set_render_omit_dominant_zero off", "exit"]):
             with mock.patch("sys.stdout", new=io.StringIO()) as stdout:
                 with mock.patch("sys.stderr", new=io.StringIO()) as stderr:
-                    exit_code = dice.runinteractive(args)
+                    exit_code = cli.runinteractive(args)
         self.assertEqual(exit_code, 0)
         self.assertEqual(stderr.getvalue(), "")
         self.assertEqual(stdout.getvalue(), "render_omit_dominant_zero = off\n")
@@ -217,7 +217,7 @@ class CliInteractiveTest(unittest.TestCase):
         with mock.patch("builtins.input", side_effect=["split d20 | == 20 -> 10", "exit"]):
             with mock.patch("sys.stdout", new=io.StringIO()) as stdout:
                 with mock.patch("sys.stderr", new=io.StringIO()) as stderr:
-                    exit_code = dice.runinteractive(args)
+                    exit_code = cli.runinteractive(args)
         self.assertEqual(exit_code, 0)
         self.assertIn("warning: split omitted a final branch and will default remaining cases to 0", stderr.getvalue())
         self.assertEqual(stdout.getvalue(), "  0: 95%\n 10: 5%\n(E): 0.50\n")
@@ -226,11 +226,11 @@ class CliInteractiveTest(unittest.TestCase):
         fake_readline = mock.Mock()
         with tempfile.TemporaryDirectory() as tmpdir:
             with mock.patch.dict(os.environ, {"XDG_STATE_HOME": tmpdir}, clear=False):
-                history_path = dice._setup_repl_history(fake_readline)
-                dice._save_repl_history(history_path, fake_readline)
+                history_path = cli._setup_repl_history(fake_readline)
+                cli._save_repl_history(history_path, fake_readline)
         self.assertEqual(history_path, os.path.join(tmpdir, "dice", "history"))
         fake_readline.read_history_file.assert_called_once_with(history_path)
-        fake_readline.set_history_length.assert_called_once_with(dice.REPL_HISTORY_LENGTH)
+        fake_readline.set_history_length.assert_called_once_with(cli.REPL_HISTORY_LENGTH)
         fake_readline.write_history_file.assert_called_once_with(history_path)
 
     def test_repl_completion_uses_interpreter_candidates(self):
@@ -238,7 +238,7 @@ class CliInteractiveTest(unittest.TestCase):
         interpreter = Interpreter(None)
         interpreter.global_scope["bonus"] = 2
 
-        @dice.dicefunction
+        @dicefunction
         def hit(ac):
             return ac
 
@@ -247,20 +247,20 @@ class CliInteractiveTest(unittest.TestCase):
         fake_readline.get_begidx.return_value = 0
         fake_readline.get_endidx.return_value = 2
 
-        dice._setup_repl_completion(interpreter, fake_readline)
+        cli._setup_repl_completion(interpreter, fake_readline)
 
         completer = fake_readline.set_completer.call_args.args[0]
         self.assertEqual(completer("bo", 0), "bonus")
         self.assertIsNone(completer("bo", 1))
         fake_readline.parse_and_bind.assert_called_once_with("tab: complete")
-        fake_readline.set_completer_delims.assert_called_once_with(dice.REPL_COMPLETER_DELIMS)
+        fake_readline.set_completer_delims.assert_called_once_with(cli.REPL_COMPLETER_DELIMS)
 
     def test_repl_errors_show_location_and_hint(self):
         args = SimpleNamespace(roundlevel=2, verbose=False, json_output=False)
         with mock.patch("builtins.input", side_effect=["1 +", "exit"]):
             with mock.patch("sys.stdout", new=io.StringIO()) as stdout:
                 with mock.patch("sys.stderr", new=io.StringIO()) as stderr:
-                    exit_code = dice.runinteractive(args)
+                    exit_code = cli.runinteractive(args)
         self.assertEqual(exit_code, 0)
         self.assertEqual(stdout.getvalue(), "")
         self.assertIn("syntax error: expected an expression", stderr.getvalue())
@@ -272,7 +272,7 @@ class CliInteractiveTest(unittest.TestCase):
         with mock.patch("builtins.input", side_effect=['"abc', "exit"]):
             with mock.patch("sys.stdout", new=io.StringIO()) as stdout:
                 with mock.patch("sys.stderr", new=io.StringIO()) as stderr:
-                    exit_code = dice.runinteractive(args)
+                    exit_code = cli.runinteractive(args)
         self.assertEqual(exit_code, 0)
         self.assertEqual(stdout.getvalue(), "")
         self.assertIn("syntax error: unterminated string literal", stderr.getvalue())
@@ -332,9 +332,9 @@ class InterpreterCompletionTest(unittest.TestCase):
 
 class CliMainIntegrationTest(unittest.TestCase):
     def test_main_prints_json_when_requested(self):
-        with mock.patch.object(sys, "argv", ["dice.py", "--json", "d20", ">=", "11"]):
+        with mock.patch.object(sys, "argv", ["dice", "--json", "d20", ">=", "11"]):
             with mock.patch("sys.stdout", new=io.StringIO()) as stdout:
-                exit_code = dice.main()
+                exit_code = cli.main()
         self.assertEqual(exit_code, 0)
         payload = json.loads(stdout.getvalue())
         self.assertEqual(payload["type"], "distribution")
@@ -343,22 +343,22 @@ class CliMainIntegrationTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tempdir:
             path = Path(tempdir) / "plot.dice"
             path.write_text('r_title("Title")\nr_auto(d20)\nrender()\n', encoding="utf-8")
-            with mock.patch.object(sys, "argv", ["dice.py", "--file", str(path)]):
-                with mock.patch("dice.wait_for_rendered_figures") as wait_for_rendered_figures:
+            with mock.patch.object(sys, "argv", ["dice", "--file", str(path)]):
+                with mock.patch("dice.cli.wait_for_rendered_figures") as wait_for_rendered_figures:
                     with mock.patch("sys.stdout", new=io.StringIO()):
-                        exit_code = dice.main()
+                        exit_code = cli.main()
         self.assertEqual(exit_code, 0)
         wait_for_rendered_figures.assert_called_once_with(
-            dice.RenderConfig.from_mode("deferred")
+            cli.RenderConfig.from_mode("deferred")
         )
 
     def test_main_autoflushes_pending_render_at_end_of_file(self):
         with tempfile.TemporaryDirectory() as tempdir:
             path = Path(tempdir) / "plot.dice"
             path.write_text('r_title("Title")\nr_auto(d20)\n', encoding="utf-8")
-            with mock.patch.object(sys, "argv", ["dice.py", "--file", str(path)]):
+            with mock.patch.object(sys, "argv", ["dice", "--file", str(path)]):
                 with mock.patch("sys.stdout", new=io.StringIO()) as stdout:
-                    exit_code = dice.main()
+                    exit_code = cli.main()
         self.assertEqual(exit_code, 0)
         rendered_path = stdout.getvalue().strip()
         self.assertTrue(rendered_path.endswith(".png"))
@@ -368,19 +368,19 @@ class CliMainIntegrationTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tempdir:
             path = Path(tempdir) / "plot.dice"
             path.write_text('set_render_mode("blocking")\nr_title("Title")\nr_auto(d20)\nrender()\n', encoding="utf-8")
-            with mock.patch.object(sys, "argv", ["dice.py", "--file", str(path)]):
-                with mock.patch("dice.wait_for_rendered_figures") as wait_for_rendered_figures:
+            with mock.patch.object(sys, "argv", ["dice", "--file", str(path)]):
+                with mock.patch("dice.cli.wait_for_rendered_figures") as wait_for_rendered_figures:
                     with mock.patch("sys.stdout", new=io.StringIO()):
-                        exit_code = dice.main()
+                        exit_code = cli.main()
         self.assertEqual(exit_code, 0)
         wait_for_rendered_figures.assert_called_once_with(
-            dice.RenderConfig.from_mode("blocking")
+            cli.RenderConfig.from_mode("blocking")
         )
 
     def test_main_json_defaults_to_raw_probabilities_even_with_percent_text_default(self):
-        with mock.patch.object(sys, "argv", ["dice.py", "--json", "d20", ">=", "11"]):
+        with mock.patch.object(sys, "argv", ["dice", "--json", "d20", ">=", "11"]):
             with mock.patch("sys.stdout", new=io.StringIO()) as stdout:
-                exit_code = dice.main()
+                exit_code = cli.main()
         self.assertEqual(exit_code, 0)
         payload = json.loads(stdout.getvalue())
         self.assertEqual([entry["outcome"] for entry in payload["distribution"]], [0, 1])
@@ -391,9 +391,9 @@ class CliMainIntegrationTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tempdir:
             path = Path(tempdir) / "probabilities.dice"
             path.write_text('set_probability_mode("percent")\nd20 >= 11\n', encoding="utf-8")
-            with mock.patch.object(sys, "argv", ["dice.py", "--json", "--file", str(path)]):
+            with mock.patch.object(sys, "argv", ["dice", "--json", "--file", str(path)]):
                 with mock.patch("sys.stdout", new=io.StringIO()) as stdout:
-                    exit_code = dice.main()
+                    exit_code = cli.main()
         self.assertEqual(exit_code, 0)
         payload = json.loads(stdout.getvalue())
         self.assertEqual([entry["outcome"] for entry in payload["distribution"]], [0, 1])
@@ -401,9 +401,9 @@ class CliMainIntegrationTest(unittest.TestCase):
         self.assertAlmostEqual(payload["distribution"][1]["probability"], 50.0)
 
     def test_main_json_defaults_to_unrounded_output(self):
-        with mock.patch.object(sys, "argv", ["dice.py", "--json", "d3"]):
+        with mock.patch.object(sys, "argv", ["dice", "--json", "d3"]):
             with mock.patch("sys.stdout", new=io.StringIO()) as stdout:
-                exit_code = dice.main()
+                exit_code = cli.main()
         self.assertEqual(exit_code, 0)
         payload = json.loads(stdout.getvalue())
         self.assertEqual(
@@ -416,9 +416,9 @@ class CliMainIntegrationTest(unittest.TestCase):
         )
 
     def test_main_json_honors_explicit_roundlevel(self):
-        with mock.patch.object(sys, "argv", ["dice.py", "--json", "-R", "2", "d3"]):
+        with mock.patch.object(sys, "argv", ["dice", "--json", "-R", "2", "d3"]):
             with mock.patch("sys.stdout", new=io.StringIO()) as stdout:
-                exit_code = dice.main()
+                exit_code = cli.main()
         self.assertEqual(exit_code, 0)
         payload = json.loads(stdout.getvalue())
         self.assertEqual(
@@ -434,18 +434,18 @@ class CliMainIntegrationTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tempdir:
             path = Path(tempdir) / "plot.dice"
             path.write_text('r_title("Title")\nr_auto(d20)\nrender()\n', encoding="utf-8")
-            with mock.patch.object(sys, "argv", ["dice.py", "--render-backend", "json", "--file", str(path)]):
+            with mock.patch.object(sys, "argv", ["dice", "--render-backend", "json", "--file", str(path)]):
                 with mock.patch("sys.stdout", new=io.StringIO()) as stdout:
-                    exit_code = dice.main()
+                    exit_code = cli.main()
         self.assertEqual(exit_code, 0)
         payload = json.loads(stdout.getvalue())
         self.assertEqual(payload["type"], "report")
         self.assertEqual(payload["backend"], "json")
 
     def test_main_uses_interactive_flag_for_repl(self):
-        with mock.patch.object(sys, "argv", ["dice.py", "--interactive"]):
-            with mock.patch.object(dice, "runinteractive", return_value=0) as runinteractive:
-                exit_code = dice.main()
+        with mock.patch.object(sys, "argv", ["dice", "--interactive"]):
+            with mock.patch.object(cli, "runinteractive", return_value=0) as runinteractive:
+                exit_code = cli.main()
         self.assertEqual(exit_code, 0)
         runinteractive.assert_called_once()
 
@@ -454,9 +454,9 @@ class CliMainIntegrationTest(unittest.TestCase):
             handle.write("1 + 1\n")
             path = handle.name
         try:
-            with mock.patch.object(sys, "argv", ["dice.py", "--file", path]):
+            with mock.patch.object(sys, "argv", ["dice", "--file", path]):
                 with mock.patch("sys.stdout", new=io.StringIO()) as stdout:
-                    exit_code = dice.main()
+                    exit_code = cli.main()
             self.assertEqual(exit_code, 0)
             self.assertEqual(stdout.getvalue(), "2\n")
         finally:
@@ -467,19 +467,19 @@ class CliMainIntegrationTest(unittest.TestCase):
             handle.write("print d20 >= 11\n")
             path = handle.name
         try:
-            with mock.patch.object(sys, "argv", ["dice.py", "--file", path]):
+            with mock.patch.object(sys, "argv", ["dice", "--file", path]):
                 with mock.patch("sys.stdout", new=io.StringIO()) as stdout:
-                    exit_code = dice.main()
+                    exit_code = cli.main()
             self.assertEqual(exit_code, 0)
             self.assertEqual(stdout.getvalue(), "  0: 50%\n  1: 50%\n(E): 0.50\n")
         finally:
             os.unlink(path)
 
     def test_main_prints_formatted_errors_for_bad_commands(self):
-        with mock.patch.object(sys, "argv", ["dice.py", "1", "+"]):
+        with mock.patch.object(sys, "argv", ["dice", "1", "+"]):
             with mock.patch("sys.stdout", new=io.StringIO()) as stdout:
                 with mock.patch("sys.stderr", new=io.StringIO()) as stderr:
-                    exit_code = dice.main()
+                    exit_code = cli.main()
         self.assertEqual(exit_code, 1)
         self.assertEqual(stdout.getvalue(), "")
         self.assertIn("syntax error: expected an expression", stderr.getvalue())

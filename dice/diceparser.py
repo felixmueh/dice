@@ -4,8 +4,8 @@
 """The Parser generates an Abstract Syntax Tree from a tokenstream"""
 
 
-from diagnostics import ParserError
-from syntaxtree import (
+from .diagnostics import ParserError
+from .syntaxtree import (
     BinOp,
     TenOp,
     Val,
@@ -33,7 +33,7 @@ from syntaxtree import (
     LocalAssign,
     BlockBody,
 )
-from lexer import (
+from .lexer import (
     Token,
     Lexer,
     INTEGER,

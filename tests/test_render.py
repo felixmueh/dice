@@ -16,11 +16,11 @@ os.environ.setdefault("MPLCONFIGDIR", str(mpl_config))
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-import viewer
+from dice import viewer
 from dice import interpret_file, interpret_statement
-from diceengine import ChartSpec, PanelWidthClass, RenderConfig, ReportSpec
-from executor import ExactExecutor
-from interpreter import Interpreter
+from dice.diceengine import ChartSpec, PanelWidthClass, RenderConfig, ReportSpec
+from dice.executor import ExactExecutor
+from dice.interpreter import Interpreter
 
 
 class RenderRuntimeTest(unittest.TestCase):
@@ -209,7 +209,7 @@ class PlannerTest(unittest.TestCase):
 
     def test_report_plan_packs_narrow_panels_two_up_and_wide_panels_full_row(self):
         pending = ReportSpec()
-        from diceengine import report_append_chart
+        from dice.diceengine import report_append_chart
 
         pending = report_append_chart(pending, self.executor.r_auto(interpret_statement("d20")))
         pending = report_append_chart(pending, self.executor.r_auto(interpret_statement("d6")))

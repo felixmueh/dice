@@ -10,7 +10,7 @@ If you only need a yes/no branch, `condition -> hit | miss` is simpler. If you n
 
 ## Exact semantics
 
-`split` is parsed explicitly in `diceparser.py` and evaluated in `interpreter.py`.
+`split` is parsed explicitly in `dice/diceparser.py` and evaluated in `dice/interpreter.py`.
 
 The runtime model is:
 

@@ -12,7 +12,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from lexer import (
+from .lexer import (
     ADV,
     ASSIGN,
     AVG,

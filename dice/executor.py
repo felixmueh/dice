@@ -8,8 +8,8 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import Any
 
-import diceengine
-from hostfunctions import (
+from . import diceengine
+from .hostfunctions import (
     D,
     DiceDefault,
     ParameterSpec,

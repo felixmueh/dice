@@ -15,12 +15,12 @@ from matplotlib.ticker import FuncFormatter
 import matplotlib.pyplot as plt
 import numpy as np
 
-from diceengine import (
+from .diceengine import (
     ChartSpec,
     PanelWidthClass,
     RenderConfig,
 )
-from renderplan import (
+from .renderplan import (
     RenderOutcome,
     build_chart_plan,
     build_report_plan,

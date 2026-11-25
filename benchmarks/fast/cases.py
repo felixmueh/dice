@@ -4,8 +4,8 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from dice import dice_interpreter
-from diceparser import DiceParser
-from lexer import Lexer
+from dice.diceparser import DiceParser
+from dice.lexer import Lexer
 
 
 ROOT = Path(__file__).resolve().parents[2]

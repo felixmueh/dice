@@ -18,9 +18,9 @@ os.environ.setdefault("MPLCONFIGDIR", str(mpl_config))
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-import dice
+from dice import cli
 from dice import interpret_file, interpret_statement
-from diceengine import TRUE, FALSE, Distribution, FiniteMeasure, Sweep
+from dice.diceengine import TRUE, FALSE, Distribution, FiniteMeasure, Sweep
 
 
 def only_distribution(result):
@@ -428,7 +428,7 @@ class RuntimeTest(unittest.TestCase):
         with mock.patch("builtins.input", side_effect=["1 +", "1 + 1", "exit"]):
             with mock.patch("sys.stdout", new=io.StringIO()) as stdout:
                 with mock.patch("sys.stderr", new=io.StringIO()) as stderr:
-                    exit_code = dice.runinteractive(args)
+                    exit_code = cli.runinteractive(args)
         self.assertEqual(exit_code, 0)
         self.assertIn("syntax error: expected an expression", stderr.getvalue())
         self.assertIn("<repl>:1:4", stderr.getvalue())

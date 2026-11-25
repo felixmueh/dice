@@ -12,9 +12,9 @@ import re
 import sys
 from itertools import product
 
-from diagnostics import DiagnosticError, DiagnosticWarning, RuntimeError as DiceRuntimeError
-from diceparser import DiceParser
-from lexer import (
+from .diagnostics import DiagnosticError, DiagnosticWarning, RuntimeError as DiceRuntimeError
+from .diceparser import DiceParser
+from .lexer import (
     Lexer,
     INTEGER,
     FLOAT,
@@ -46,7 +46,7 @@ from lexer import (
     PRINT,
     STRING,
 )
-from diceengine import (
+from .diceengine import (
     Sweep,
     SweepValues,
     FiniteMeasure,
@@ -66,9 +66,9 @@ from diceengine import (
     _union_axes,
     sweep_index,
 )
-from executor import ExactExecutor
-from hostfunctions import DiceDefault, MISSING, ParameterSpec, get_dicefunction_metadata, validate_runtime_value
-from purity import PurityAnalyzer
+from .executor import ExactExecutor
+from .hostfunctions import DiceDefault, MISSING, ParameterSpec, get_dicefunction_metadata, validate_runtime_value
+from .purity import PurityAnalyzer
 
 
 STDLIB_ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "stdlib")

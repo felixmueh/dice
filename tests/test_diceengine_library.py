@@ -15,7 +15,7 @@ os.environ.setdefault("MPLCONFIGDIR", str(mpl_config))
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from diceengine import FALSE, TRUE, Distribution, FiniteMeasure, Sweep, SweepValues, add, cum, greaterorequal, mean, repeat_sum, rollsingle, std, surv, total, var
+from dice.diceengine import FALSE, TRUE, Distribution, FiniteMeasure, Sweep, SweepValues, add, cum, greaterorequal, mean, repeat_sum, rollsingle, std, surv, total, var
 
 
 def only_distribution(result):

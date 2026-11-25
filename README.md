@@ -261,7 +261,15 @@ cd dice
 python3 -m venv .venv
 . .venv/bin/activate
 pip install -r requirements.txt
-python3 dice.py "d20 >= 15 -> 8 | 0"
+python3 -m dice "d20 >= 15 -> 8 | 0"
+```
+
+`python3 -m dice` runs the `dice/` package from the repository root. To get a
+`dice` command that works from any directory, install the checkout instead:
+
+```bash
+pip install -e .
+dice "d20 >= 15 -> 8 | 0"
 ```
 
 If you also want to build the documentation site locally:
@@ -276,9 +284,9 @@ mkdocs serve
 The CLI has three main modes:
 
 ```bash
-python3 dice.py --interactive
-python3 dice.py "d20 >= 11 -> 5"
-python3 dice.py --file path/to/program.dice
+python3 -m dice --interactive
+python3 -m dice "d20 >= 11 -> 5"
+python3 -m dice --file path/to/program.dice
 ```
 
 Useful flags:

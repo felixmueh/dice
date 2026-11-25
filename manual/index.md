@@ -6,11 +6,11 @@ Use `README.md` for the shortest possible GitHub-facing introduction. Use this m
 
 The manual is written against the current implementation, not against an older design document. The main source files behind this manual are:
 
-- `lexer.py` for tokens and basic surface syntax
-- `diceparser.py` for grammar and parse rules
-- `interpreter.py` for statement execution and imports
-- `diceengine.py` for runtime values and exact semantics
-- `viewer.py` for report planning and rendering
+- `dice/lexer.py` for tokens and basic surface syntax
+- `dice/diceparser.py` for grammar and parse rules
+- `dice/interpreter.py` for statement execution and imports
+- `dice/diceengine.py` for runtime values and exact semantics
+- `dice/viewer.py` for report planning and rendering
 
 ## How to read this manual
 

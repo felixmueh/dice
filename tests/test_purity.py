@@ -16,7 +16,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from dice import dice_interpreter, dicefunction
-from lexer import (
+from dice.lexer import (
     ADV,
     ASSIGN,
     AVG,
@@ -41,7 +41,7 @@ from lexer import (
     RES,
     ROLL,
 )
-from purity import BINARY_OPERATOR_PURITY, TENARY_OPERATOR_PURITY, UNARY_OPERATOR_PURITY
+from dice.purity import BINARY_OPERATOR_PURITY, TENARY_OPERATOR_PURITY, UNARY_OPERATOR_PURITY
 
 DISPATCHED_UNARY_OPERATORS = frozenset((ROLL, ADV, DIS, AVG, PROP, MINUS, PRINT))
 DISPATCHED_BINARY_OPERATORS = frozenset(

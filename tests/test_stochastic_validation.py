@@ -15,7 +15,7 @@ os.environ.setdefault("MPLCONFIGDIR", str(mpl_config))
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from directdiceengine import monte_carlo_validate
+from dice.directdiceengine import monte_carlo_validate
 
 
 RUN_STOCHASTIC_VALIDATION = os.environ.get("RUN_STOCHASTIC_VALIDATION") == "1"

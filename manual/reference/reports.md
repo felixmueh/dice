@@ -14,7 +14,7 @@ This is meant for analysis scripts rather than for single expressions typed at t
 
 ## Exact semantics
 
-The report state and chart spec types live in `diceengine.py`. Report planning and concrete rendering live in `viewer.py`. The executor exposes the public `r_*` helpers in `executor.py`.
+The report state and chart spec types live in `dice/diceengine.py`. Report planning and concrete rendering live in `dice/viewer.py`. The executor exposes the public `r_*` helpers in `dice/executor.py`.
 
 Important rules:
 

@@ -5,7 +5,7 @@ from __future__ import annotations
 from functools import lru_cache
 
 from dice import dicefunction
-from diceengine import Distribution, _deterministic_numeric_value, add
+from dice.diceengine import Distribution, _deterministic_numeric_value, add
 
 
 def _deterministic(value: int) -> Distribution:

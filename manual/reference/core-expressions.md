@@ -15,7 +15,7 @@ This is the part of the language that should feel closest to tabletop reasoning.
 
 ## Exact semantics
 
-The parser handles these operators in `diceparser.py`, while the exact math lives in `diceengine.py`.
+The parser handles these operators in `dice/diceparser.py`, while the exact math lives in `dice/diceengine.py`.
 
 Important rules:
 
